@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
 
 function Canevas() {
@@ -31,7 +31,6 @@ function Canevas() {
     }
   };
 
-  // Charger les données une seule fois au montage
   useEffect(() => {
     fetchCanevas();
   }, []);
@@ -78,6 +77,13 @@ function Canevas() {
     }
   };
 
+  // Variants pour animer l'apparition/disparition des sections
+  const sectionVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -10 },
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -106,67 +112,107 @@ function Canevas() {
       <h1 className="text-3xl font-bold text-blue-600 mt-4">Répertoire de Canevas</h1>
 
       {/* Affichage des catégories */}
-      <div className="mt-4">
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        variants={sectionVariants}
+        className="mt-4"
+      >
         <h2 className="text-xl font-semibold">📁 Catégories :</h2>
         <div className="flex flex-wrap gap-2 mt-2">
           {Object.keys(canevasData).map((category) => (
-            <button
+            <motion.button
               key={category}
-              className={`p-2 border rounded ${selectedCategory === category ? "bg-blue-500 text-white" : "bg-gray-200"} hover:scale-102 hover:shadow-md transition`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`p-2 border rounded ${
+                selectedCategory === category ? "bg-blue-500 text-white" : "bg-gray-200"
+              } transition`}
               onClick={() => {
                 setSelectedCategory(category === selectedCategory ? null : category);
                 setSelectedSubCategory(null);
               }}
             >
               {category}
-            </button>
+            </motion.button>
           ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* Affichage des sous-catégories */}
-      {selectedCategory && canevasData[selectedCategory] && (
-        <div className="mt-4">
-          <h2 className="text-xl font-semibold">📂 Sous-catégories :</h2>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {Object.keys(canevasData[selectedCategory]).map((subCategory) => (
-              <button
-                key={subCategory}
-                className={`p-2 border rounded ${selectedSubCategory === subCategory ? "bg-green-500 text-white" : "bg-gray-200"} hover:scale-102 hover:shadow-md transition`}
-                onClick={() => setSelectedSubCategory(subCategory === selectedSubCategory ? null : subCategory)}
-              >
-                {subCategory}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Affichage des canevas */}
-      {selectedSubCategory && canevasData[selectedCategory][selectedSubCategory] && (
-        <div className="mt-4">
-          <h2 className="text-xl font-semibold">📜 Canevas :</h2>
-          <ul>
-            {Object.keys(canevasData[selectedCategory][selectedSubCategory]).map((canevas) => (
-              <li key={canevas} className="mb-2">
-                <button
-                  className="w-full text-left text-lg font-semibold p-2 border rounded bg-gray-200 hover:bg-blue-500 hover:text-white transition"
-                  onClick={() => handleCopy(canevasData[selectedCategory][selectedSubCategory][canevas])}
+      <AnimatePresence>
+        {selectedCategory && canevasData[selectedCategory] && (
+          <motion.div
+            key="subcategories"
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            variants={sectionVariants}
+            className="mt-4"
+          >
+            <h2 className="text-xl font-semibold">📂 Sous-catégories :</h2>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {Object.keys(canevasData[selectedCategory]).map((subCategory) => (
+                <motion.button
+                  key={subCategory}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`p-2 border rounded ${
+                    selectedSubCategory === subCategory ? "bg-green-500 text-white" : "bg-gray-200"
+                  } transition`}
+                  onClick={() =>
+                    setSelectedSubCategory(subCategory === selectedSubCategory ? null : subCategory)
+                  }
                 >
-                  {canevas}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+                  {subCategory}
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Affichage des canevas avec effet de fade-in */}
+      <AnimatePresence>
+        {selectedSubCategory && canevasData[selectedCategory][selectedSubCategory] && (
+          <motion.div
+            key="canevasList"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.5 }}
+            className="mt-4"
+          >
+            <h2 className="text-xl font-semibold">📜 Canevas :</h2>
+            <motion.ul>
+              {Object.keys(canevasData[selectedCategory][selectedSubCategory]).map((canevas) => (
+                <motion.li
+                  key={canevas}
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.2 }}
+                  className="mb-2"
+                >
+                  <button
+                    className="w-full text-left text-lg font-semibold p-2 border rounded bg-gray-200 hover:bg-blue-500 hover:text-white transition"
+                    onClick={() =>
+                      handleCopy(canevasData[selectedCategory][selectedSubCategory][canevas])
+                    }
+                  >
+                    {canevas}
+                  </button>
+                </motion.li>
+              ))}
+            </motion.ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Pop-up d'édition */}
       {isModalOpen && editAction === "add" && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
           <div className="bg-white p-6 rounded shadow-lg w-96">
             <h2 className="text-xl font-semibold mb-4">➕ Ajouter un élément</h2>
-
             <input
               type="text"
               placeholder="Nom"
@@ -174,7 +220,6 @@ function Canevas() {
               onChange={(e) => setNewTitle(e.target.value)}
               className="w-full p-2 border rounded mb-2"
             />
-
             <button onClick={handleAddItem} className="px-4 py-2 bg-blue-500 text-white rounded">
               ✅ Ajouter
             </button>
