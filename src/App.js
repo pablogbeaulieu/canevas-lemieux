@@ -6,7 +6,7 @@ function App() {
   return (
     <Router>
       <nav className="bg-blue-600 p-4 text-white flex justify-between">
-        <div className="font-bold text-lg">Courtia</div>
+        <div className="font-bold text-lg">Lemieux Assurances</div>
         <div className="space-x-4">
           <Link to="/dashboard" className="hover:underline">Accueil</Link>
           <Link to="/canevas" className="hover:underline">Répertoire de Canevas</Link>
