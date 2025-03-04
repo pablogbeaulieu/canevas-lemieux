@@ -1,37 +1,38 @@
 import { useState, useEffect } from "react";
+import { supabase } from "../api"; // Utilisation de Supabase pour récupérer les données
 import { motion } from "framer-motion";
-import axios from "axios";
 
 function Canevas() {
   const [canevasData, setCanevasData] = useState({});
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [selectedSubCategory, setSelectedSubCategory] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editAction, setEditAction] = useState("");
-  const [itemType, setItemType] = useState("category");
-  const [newTitle, setNewTitle] = useState("");
-  const [newContent, setNewContent] = useState("");
 
-  const isAdmin = localStorage.getItem("isAdmin") === "true";
-
+  // Fonction pour récupérer les canevas depuis Supabase
   const fetchCanevas = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/canevas");
-      const formattedData = response.data.reduce((acc, item) => {
+      const { data, error } = await supabase.from("canevas").select("*"); // Assure-toi que tu as bien la table "canevas" dans Supabase
+
+      if (error) {
+        console.error("Erreur lors de la récupération des canevas :", error);
+        return;
+      }
+
+      // Formater les données pour les catégories et sous-catégories
+      const formattedData = data.reduce((acc, item) => {
         const { category, subCategory, title, content } = item;
         if (!acc[category]) acc[category] = {};
         if (!acc[category][subCategory]) acc[category][subCategory] = {};
         acc[category][subCategory][title] = content;
         return acc;
       }, {});
-      setCanevasData(formattedData);
+
+      setCanevasData(formattedData); // Mettre à jour l'état des canevas
     } catch (error) {
       console.error("Erreur lors de la récupération des canevas :", error);
     }
   };
 
-  // Charger les données une seule fois au montage
+  // Charger les canevas lors du premier rendu
   useEffect(() => {
     fetchCanevas();
   }, []);
@@ -41,68 +42,13 @@ function Canevas() {
     alert("Canevas copié !");
   };
 
-  const openEditModal = (action) => {
-    setEditAction(action);
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setEditAction("");
-    setNewTitle("");
-    setNewContent("");
-    setItemType("category");
-  };
-
-  const handleAddItem = async () => {
-    if (!newTitle.trim()) {
-      alert("Le nom ne peut pas être vide.");
-      return;
-    }
-  
-    let body = {
-      category: itemType === "category" ? newTitle : selectedCategory,
-      subCategory: itemType === "subCategory" ? newTitle : selectedSubCategory,
-      title: itemType === "canevas" ? newTitle : "",
-      content: itemType === "canevas" ? newContent : "",
-    };
-  
-    try {
-      await axios.post("http://localhost:5000/canevas", body);
-      fetchCanevas();  // Recharge immédiatement les données
-      closeModal();
-      alert("✅ Ajout réussi !");
-    } catch (error) {
-      console.error("Erreur lors de l'ajout :", error);
-      alert("❌ Erreur lors de l'ajout.");
-    }
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      className={`p-6 ${isEditing ? "bg-blue-100 border border-blue-300" : "bg-white"}`}
+      className="p-6 bg-white"
     >
-      {isAdmin && (
-        <button
-          onClick={() => setIsEditing(!isEditing)}
-          className={`px-4 py-2 rounded text-white ${isEditing ? "bg-red-500" : "bg-blue-500"} hover:opacity-80 transition`}
-        >
-          {isEditing ? "Désactiver le Mode Édition" : "🛠️ Activer le Mode Édition"}
-        </button>
-      )}
-
-      {isEditing && (
-        <button
-          onClick={() => openEditModal("add")}
-          className="mt-4 px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600 transition"
-        >
-          ➕ Ajouter
-        </button>
-      )}
-
       <h1 className="text-3xl font-bold text-blue-600 mt-4">Répertoire de Canevas</h1>
 
       {/* Affichage des catégories */}
@@ -158,30 +104,6 @@ function Canevas() {
               </li>
             ))}
           </ul>
-        </div>
-      )}
-
-      {/* Pop-up d'édition */}
-      {isModalOpen && editAction === "add" && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white p-6 rounded shadow-lg w-96">
-            <h2 className="text-xl font-semibold mb-4">➕ Ajouter un élément</h2>
-
-            <input
-              type="text"
-              placeholder="Nom"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              className="w-full p-2 border rounded mb-2"
-            />
-
-            <button onClick={handleAddItem} className="px-4 py-2 bg-blue-500 text-white rounded">
-              ✅ Ajouter
-            </button>
-            <button onClick={closeModal} className="ml-2 px-4 py-2 bg-gray-500 text-white rounded">
-              ❌ Annuler
-            </button>
-          </div>
         </div>
       )}
     </motion.div>
