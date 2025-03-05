@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../api"; // Assure-toi d'importer Supabase
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -7,9 +8,15 @@ function Dashboard() {
   useEffect(() => {
     const isAuthenticated = localStorage.getItem("isAuthenticated");
     if (!isAuthenticated) {
-      navigate("/login"); // Si pas connecté, on renvoie à la connexion
+      navigate("/login"); // Si pas connecté, rediriger vers la connexion
     }
   }, [navigate]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut(); // Déconnexion de Supabase
+    localStorage.removeItem("isAuthenticated"); // Retire l'authentification locale
+    window.location.reload(); // 🔄 Force un rafraîchissement immédiat
+  };
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
@@ -17,10 +24,7 @@ function Dashboard() {
       <p className="text-gray-700 mt-2">Bienvenue dans l'application.</p>
 
       <button
-        onClick={() => {
-          localStorage.removeItem("isAuthenticated");
-          navigate("/login");
-        }}
+        onClick={handleLogout}
         className="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
       >
         Se Déconnecter

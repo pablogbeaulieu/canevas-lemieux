@@ -5,48 +5,53 @@ import { useNavigate } from "react-router-dom";
 function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleRegister = async () => {
+    setLoading(true);
+
     try {
       // Inscrire l'utilisateur dans Supabase
-      const { user, error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
 
       if (error) {
+        console.error("Erreur lors de l'inscription :", error.message);
         alert("Erreur lors de l'inscription : " + error.message);
+        setLoading(false);
         return;
       }
 
-      // Vérification de l'objet user avant d'accéder à ses propriétés
-      if (!user) {
-        throw new Error("Utilisateur non défini");
+      // Vérification si l'utilisateur a bien été créé
+      if (!data || !data.user) {
+        throw new Error("L'utilisateur n'a pas été créé.");
       }
 
-      // Ajouter des informations supplémentaires dans la table 'profiles' si nécessaire
-      const { data, errorProfile } = await supabase
+      // Ajouter des informations supplémentaires dans la table 'profiles'
+      const { error: errorProfile } = await supabase
         .from("profiles")
         .insert([
           {
-            id: user.id, // Maintenant on s'assure que 'user' est défini avant d'y accéder
-            email: user.email,
-            // Ajouter d'autres informations si nécessaire
+            id: data.user.id, // ID utilisateur provenant de Supabase
+            email: data.user.email, // Stocke l'email dans la table
           }
         ]);
 
       if (errorProfile) {
-        console.log("Erreur lors de l'ajout au profil :", errorProfile);
-      } else {
-        console.log("Utilisateur inscrit et profil ajouté :", data);
+        console.error("Erreur lors de l'ajout au profil :", errorProfile);
       }
 
-      // Rediriger l'utilisateur après l'inscription
-      navigate("/login"); // Par exemple, rediriger vers la page de connexion après l'inscription réussie
+      // Succès : Rediriger l'utilisateur après l'inscription
+      alert("Compte créé avec succès ! Vous pouvez maintenant vous connecter.");
+      navigate("/login");
     } catch (err) {
-      console.error("Une erreur s'est produite pendant l'inscription :", err);
-      alert("Une erreur s'est produite pendant l'inscription. Veuillez réessayer.");
+      console.error("Erreur inattendue :", err);
+      alert("Une erreur inattendue s'est produite. Veuillez réessayer.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -62,6 +67,7 @@ function RegisterPage() {
             className="w-full p-2 border rounded"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
           />
         </div>
 
@@ -72,14 +78,16 @@ function RegisterPage() {
             className="w-full p-2 border rounded"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
           />
         </div>
 
         <button
           onClick={handleRegister}
-          className="mt-4 w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+          className={`mt-4 w-full p-2 rounded text-white ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"}`}
+          disabled={loading}
         >
-          S'inscrire
+          {loading ? "Création du compte..." : "S'inscrire"}
         </button>
       </div>
     </div>
