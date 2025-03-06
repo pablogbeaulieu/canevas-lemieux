@@ -67,6 +67,23 @@ function Canevas() {
   const generateScript = () => {
     return `À votre demande ${clientName}, je vous confirme que la police d'assurance ${insuranceType} chez ${insurerName} au numéro de police ${policyNumber} sera résiliée à partir du ${cancellationDate}. Lemieux Assurances n'aura plus le mandat d'agir pour vous pour ce contrat d'assurance mentionné, est-ce que c'est bien votre demande?`;
   };
+  // Génère le courriel basé sur les informations saisies
+const generateEmail = () => {
+  return `Numéro de la police d’assurance: ${policyNumber}
+Assureur: ${insurerName}
+Date de résiliation: ${cancellationDate}
+
+Bonjour ${clientName},
+
+À la suite des instructions reçues de votre part, nous vous confirmons que la police ci-haut mentionnée a été résiliée. 
+
+Par conséquent, nous vous avisons que nous mettons fin à notre mandat d’agir pour vous à titre de courtier en assurance de dommages pour la police mentionnée en titre.
+Soyez ainsi informé(e) que nous ne ferons aucune démarche auprès d’autres assureurs pour vous procurer une autre police d’assurance.
+
+Dans l’intervalle, et si besoin était, nous demeurons disponibles.
+
+Bien à vous,`;
+};
 
   return (
     <motion.div
@@ -140,40 +157,48 @@ function Canevas() {
         </div>
       )}
 
-      {/* Pop-up pour le script d'annulation */}
-      {isScriptModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white p-6 rounded shadow-lg w-96">
-            <h2 className="text-xl font-semibold mb-4">📢 Script Verbal d'Annulation</h2>
+{/* Pop-up pour le script et le courriel */}
+{isScriptModalOpen && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+    <div className="bg-white p-6 rounded shadow-lg w-full max-w-3xl flex gap-6">
+      
+      {/* Bloc pour le Script Verbal */}
+      <div className="flex-1">
+        <h2 className="text-xl font-semibold mb-4">📢 Script Verbal d'Annulation</h2>
 
-            {!needScript ? (
-              <>
-                <p>Avez-vous besoin d'un script verbal ?</p>
-                <button onClick={() => setNeedScript(true)} className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                  Oui
-                </button>
-                <button onClick={() => setIsScriptModalOpen(false)} className="mt-4 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 ml-2">
-                  Non
-                </button>
-              </>
-            ) : (
-              <>
-                <input type="text" placeholder="Nom du client" className="w-full p-2 border rounded mb-2" onChange={(e) => setClientName(e.target.value)} />
-                <input type="text" placeholder="Numéro de police" className="w-full p-2 border rounded mb-2" onChange={(e) => setPolicyNumber(e.target.value)} />
-                <input type="text" placeholder="Date de résiliation" className="w-full p-2 border rounded mb-2" onChange={(e) => setCancellationDate(e.target.value)} />
-                <input type="text" placeholder="Type d'assurance" className="w-full p-2 border rounded mb-2" onChange={(e) => setInsuranceType(e.target.value)} />
-                <input type="text" placeholder="Nom de l’assureur" className="w-full p-2 border rounded mb-2" onChange={(e) => setInsurerName(e.target.value)} />
+        <input type="text" placeholder="Nom du client" className="w-full p-2 border rounded mb-2" onChange={(e) => setClientName(e.target.value)} />
+        <input type="text" placeholder="Numéro de police" className="w-full p-2 border rounded mb-2" onChange={(e) => setPolicyNumber(e.target.value)} />
+        <input type="text" placeholder="Date de résiliation" className="w-full p-2 border rounded mb-2" onChange={(e) => setCancellationDate(e.target.value)} />
+        <input type="text" placeholder="Type d'assurance" className="w-full p-2 border rounded mb-2" onChange={(e) => setInsuranceType(e.target.value)} />
+        <input type="text" placeholder="Nom de l’assureur" className="w-full p-2 border rounded mb-2" onChange={(e) => setInsurerName(e.target.value)} />
 
-                <textarea className="w-full p-2 border rounded" readOnly rows="8" value={generateScript()} />
-                <button onClick={() => setIsScriptModalOpen(false)} className="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-                  Fermer
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-    </motion.div>
+        <textarea className="w-full p-2 border rounded mb-2" readOnly rows="8" value={generateScript()} />
+
+        <button onClick={() => setIsScriptModalOpen(false)} className="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+          Fermer
+        </button>
+      </div>
+
+      {/* Bloc pour le Courriel de Confirmation */}
+      <div className="flex-1">
+        <h2 className="text-xl font-semibold mb-4">✉️ Courriel de Confirmation</h2>
+        <textarea className="w-full p-2 border rounded mb-2" rows="8" readOnly value={generateEmail()} />
+        <button 
+  onClick={() => {
+    navigator.clipboard.writeText(generateEmail()); // Copie dans le presse-papier
+    alert("Courriel copié !"); // Affiche un message de confirmation du navigateur
+  }} 
+  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+>
+  Copier ✉️
+</button>
+      </div>
+
+    </div>
+  </div>
+)}
+
+</motion.div>
   );
 }
 
