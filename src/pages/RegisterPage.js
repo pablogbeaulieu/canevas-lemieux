@@ -2,6 +2,29 @@ import { useState } from "react";
 import { supabase } from "../api"; // Assure-toi d'importer correctement le client Supabase
 import { useNavigate } from "react-router-dom";
 
+// Fonction pour ajouter l'utilisateur à la table 'users'
+const addUserToDatabase = async (user) => {
+  if (!user) return;
+
+  try {
+    const { data, error } = await supabase.from("users").upsert([
+      {
+        id: user.id,
+        email: user.email,
+        role: "user",
+      },
+    ], { returning: "representation" }); // 🔹 Retourne les données insérées
+
+    if (error) {
+      console.error("❌ Erreur lors de l'ajout de l'utilisateur en DB :", error);
+    } else {
+      console.log("✅ Utilisateur ajouté avec succès dans la table `users` :", data);
+    }
+  } catch (err) {
+    console.error("❌ Erreur inattendue lors de l'ajout à `users` :", err);
+  }
+};
+
 function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -12,43 +35,36 @@ function RegisterPage() {
     setLoading(true);
 
     try {
-      // Inscrire l'utilisateur dans Supabase
+      // Création du compte utilisateur via Supabase
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
 
       if (error) {
-        console.error("Erreur lors de l'inscription :", error.message);
+        console.error("❌ Erreur lors de l'inscription :", error.message);
         alert("Erreur lors de l'inscription : " + error.message);
         setLoading(false);
         return;
       }
 
-      // Vérification si l'utilisateur a bien été créé
+      console.log("✅ Utilisateur inscrit avec succès :", data.user);
+
       if (!data || !data.user) {
         throw new Error("L'utilisateur n'a pas été créé.");
       }
 
-      // Ajouter des informations supplémentaires dans la table 'profiles'
-      const { error: errorProfile } = await supabase
-        .from("profiles")
-        .insert([
-          {
-            id: data.user.id, // ID utilisateur provenant de Supabase
-            email: data.user.email, // Stocke l'email dans la table
-          }
-        ]);
+      // **Ajout d'un délai pour éviter un conflit d'authentification**
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      if (errorProfile) {
-        console.error("Erreur lors de l'ajout au profil :", errorProfile);
-      }
+      // Ajoute l'utilisateur à la table "users"
+      await addUserToDatabase(data.user);
 
-      // Succès : Rediriger l'utilisateur après l'inscription
+      // ✅ Redirige l'utilisateur après l'inscription
       alert("Compte créé avec succès ! Vous pouvez maintenant vous connecter.");
       navigate("/login");
     } catch (err) {
-      console.error("Erreur inattendue :", err);
+      console.error("❌ Erreur inattendue :", err);
       alert("Une erreur inattendue s'est produite. Veuillez réessayer.");
     } finally {
       setLoading(false);
@@ -84,7 +100,9 @@ function RegisterPage() {
 
         <button
           onClick={handleRegister}
-          className={`mt-4 w-full p-2 rounded text-white ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"}`}
+          className={`mt-4 w-full p-2 rounded text-white ${
+            loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:bg-blue-600"
+          }`}
           disabled={loading}
         >
           {loading ? "Création du compte..." : "S'inscrire"}

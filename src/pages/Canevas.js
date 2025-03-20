@@ -172,7 +172,7 @@ Bien à vous,`;
         <input type="text" placeholder="Type d'assurance" className="w-full p-2 border rounded mb-2" onChange={(e) => setInsuranceType(e.target.value)} />
         <input type="text" placeholder="Nom de l’assureur" className="w-full p-2 border rounded mb-2" onChange={(e) => setInsurerName(e.target.value)} />
 
-        <textarea className="w-full p-2 border rounded mb-2" readOnly rows="8" value={generateScript()} />
+        <textarea className="w-full p-2 border rounded mb-2" readOnly rows="9" value={generateScript()} />
 
         <button onClick={() => setIsScriptModalOpen(false)} className="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
           Fermer
@@ -182,7 +182,7 @@ Bien à vous,`;
       {/* Bloc pour le Courriel de Confirmation */}
       <div className="flex-1">
         <h2 className="text-xl font-semibold mb-4">✉️ Courriel de Confirmation</h2>
-        <textarea className="w-full p-2 border rounded mb-2" rows="8" readOnly value={generateEmail()} />
+        <textarea className="w-full p-2 border rounded mb-2" rows="25" readOnly value={generateEmail()} />
         <button 
   onClick={() => {
     navigator.clipboard.writeText(generateEmail()); // Copie dans le presse-papier

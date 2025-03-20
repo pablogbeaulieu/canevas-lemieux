@@ -1,15 +1,32 @@
-import { useState } from "react";
-import { supabase } from "../api"; // Assure-toi d'importer correctement le client Supabase
+import { useState, useEffect } from "react";
+import { supabase } from "../api"; // Connexion à Supabase
 import { useNavigate } from "react-router-dom";
 
 function LoginPage() {
-  const [email, setEmail] = useState("");  // Utilisation de l'email pour l'authentification
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [userRole, setUserRole] = useState(null); // Stocke le rôle
   const navigate = useNavigate();
 
+  // 🔹 Fonction pour récupérer le rôle de l'utilisateur
+  const fetchUserRole = async (userId) => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", userId)
+      .single(); // Prend un seul utilisateur
+  
+    if (error) {
+      console.error("❌ Erreur récupération rôle:", error);
+      return null;
+    }
+  
+    return data?.role; // Retourne "user" ou "admin"
+  };
+
+  // 🔹 Gestion de la connexion
   const handleLogin = async () => {
     try {
-      // Connexion avec Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -20,24 +37,32 @@ function LoginPage() {
         return;
       }
 
-      // Vérifie si l'utilisateur est bien défini avant de tenter d'y accéder
-      if (!data || !data.user) {
-        throw new Error("L'utilisateur n'a pas pu être trouvé.");
+      const user = data.user;
+      if (!user) throw new Error("L'utilisateur n'a pas pu être trouvé.");
+
+      // 🔹 Récupère le rôle depuis Supabase
+      const role = await fetchUserRole(user.id);
+      setUserRole(role); // Met à jour l'état
+
+      // 🔹 Stocke le rôle dans localStorage pour l'accès rapide
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("userId", user.id);
+      localStorage.setItem("email", user.email);
+      localStorage.setItem("role", role || "user"); // Par défaut, "user"
+
+      console.log(`✅ Utilisateur connecté : ${user.email}, Rôle : ${role}`);
+
+      // Redirige l'utilisateur selon son rôle
+      if (role === "admin") {
+        navigate("/admin-dashboard");
+      } else {
+        navigate("/dashboard");
       }
 
-      const user = data.user; // Correction pour récupérer l'utilisateur
-
-      // Enregistrer les informations de l'utilisateur dans le localStorage
-      localStorage.setItem("isAuthenticated", "true");
-      localStorage.setItem("username", user.email);
-      localStorage.setItem("email", user.email);
-
-      // Rediriger l'utilisateur vers le tableau de bord ou une autre page après la connexion réussie
-      navigate("/dashboard");
-      window.location.reload(); // Rafraîchir les onglets après connexion
+      window.location.reload(); // Rafraîchir l'application après connexion
     } catch (err) {
-      console.error("Erreur lors de la connexion :", err);
-      alert("Une erreur s'est produite lors de la connexion. Veuillez réessayer.");
+      console.error("❌ Erreur lors de la connexion :", err);
+      alert("Une erreur s'est produite lors de la connexion.");
     }
   };
 
