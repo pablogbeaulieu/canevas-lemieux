@@ -136,23 +136,41 @@ Bien à vous,`;
         <div className="mt-4">
           <h2 className="text-xl font-semibold">📜 Canevas :</h2>
           <ul>
-            {Object.keys(canevasData[selectedCategory][selectedSubCategory]).map((canevas) => (
-              <li key={canevas} className="mb-2">
-                <button
-                  className="w-full text-left text-lg font-semibold p-2 border rounded bg-gray-200 hover:bg-blue-500 hover:text-white transition"
-                  onClick={() =>
-                    handleCanevasClick(
-                      selectedCategory,
-                      selectedSubCategory,
-                      canevas,
-                      canevasData[selectedCategory][selectedSubCategory][canevas]
-                    )
-                  }
-                >
-                  {canevas}
-                </button>
-              </li>
-            ))}
+          {Object.entries(canevasData[selectedCategory][selectedSubCategory]).map(([canevas, content]) => {
+  const isTableauComparatif =
+    selectedCategory === "BATEAUX" &&
+    selectedSubCategory === "Tous" &&
+    canevas.trim().toLowerCase() === "tableau comparatif";
+
+  return (
+    <li key={canevas} className="mb-2">
+      {isTableauComparatif ? (
+        <a
+          href="https://lemieuxassurance.sharepoint.com/:x:/s/AssurancedesParticuliers/ETR4yFKw-SxBvULzmdg9we0BSdtQcvy95t29y2adYatSzg?e=UNLRev"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block w-full text-left text-lg font-semibold p-2 border rounded bg-blue-100 hover:bg-blue-200 hover:text-blue-800 transition"
+        >
+          {canevas} 🔗
+        </a>
+      ) : (
+        <button
+          className="w-full text-left text-lg font-semibold p-2 border rounded bg-gray-200 hover:bg-blue-500 hover:text-white transition"
+          onClick={() =>
+            handleCanevasClick(
+              selectedCategory,
+              selectedSubCategory,
+              canevas,
+              content
+            )
+          }
+        >
+          {canevas}
+        </button>
+      )}
+    </li>
+  );
+})}
           </ul>
         </div>
       )}
