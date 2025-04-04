@@ -142,35 +142,45 @@ Bien à vous,`;
     selectedSubCategory === "Tous" &&
     canevas.trim().toLowerCase() === "tableau comparatif";
 
-  return (
-    <li key={canevas} className="mb-2">
-      {isTableauComparatif ? (
-        <a
-          href="https://lemieuxassurance.sharepoint.com/:x:/s/AssurancedesParticuliers/ETR4yFKw-SxBvULzmdg9we0BSdtQcvy95t29y2adYatSzg?e=UNLRev"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block w-full text-left text-lg font-semibold p-2 border rounded bg-blue-100 hover:bg-blue-200 hover:text-blue-800 transition"
-        >
-          {canevas} 🔗
-        </a>
-      ) : (
-        <button
-          className="w-full text-left text-lg font-semibold p-2 border rounded bg-gray-200 hover:bg-blue-500 hover:text-white transition"
-          onClick={() =>
-            handleCanevasClick(
-              selectedCategory,
-              selectedSubCategory,
-              canevas,
-              content
-            )
-          }
-        >
-          {canevas}
-        </button>
-      )}
-    </li>
-  );
-})}
+  const isAnnulation =
+    selectedCategory === "ANNU" &&
+    selectedSubCategory === "TOUS" &&
+    canevas.trim().toLowerCase().includes("annulation en court de terme ou au renouvellement");
+
+    return (
+      <li key={canevas} className="mb-2">
+        {isTableauComparatif ? (
+          <a
+            href="https://lemieuxassurance.sharepoint.com/:x:/s/AssurancedesParticuliers/ETR4yFKw-SxBvULzmdg9we0BSdtQcvy95t29y2adYatSzg?e=UNLRev"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block w-full text-left text-lg font-semibold p-2 border rounded bg-blue-100 hover:bg-blue-200 hover:text-blue-800 transition"
+          >
+            {canevas} 🔗
+          </a>
+        ) : (
+          <button
+            className={`w-full text-left text-lg font-semibold p-2 border rounded transition ${
+              isAnnulation
+                ? "bg-red-100 hover:bg-red-200 text-red-800"
+                : "bg-gray-200 hover:bg-blue-500 hover:text-white"
+            }`}
+            onClick={() =>
+              handleCanevasClick(
+                selectedCategory,
+                selectedSubCategory,
+                canevas,
+                content
+              )
+            }
+          >
+            {canevas}
+          </button>
+        )}
+      </li>
+    );
+  })}
+  
           </ul>
         </div>
       )}
