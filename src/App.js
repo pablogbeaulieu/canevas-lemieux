@@ -17,21 +17,31 @@ function App() {
   // Fonction pour récupérer le rôle utilisateur depuis Supabase
   const fetchUserRole = async (userId) => {
     if (!userId) return;
-
+  
     const { data, error } = await supabase
       .from("users")
-      .select("role")
+      .select("role, isApproved")
       .eq("id", userId)
       .single();
-
+  
     if (error) {
       console.error("Erreur récupération rôle :", error.message);
       setUserRole(null);
+      setIsAuthenticated(false);
     } else {
-      setUserRole(data.role);
-      localStorage.setItem("userRole", data.role); // Stocker le rôle
+      if (data.isApproved) {
+        setUserRole(data.role);
+        setIsAuthenticated(true);
+        localStorage.setItem("userRole", data.role);
+      } else {
+        alert("Votre compte n’a pas encore été approuvé par un administrateur.");
+        await supabase.auth.signOut();
+        setUserRole(null);
+        setIsAuthenticated(false);
+        localStorage.clear();
+      }
     }
-  };
+  };  
 
   // Vérifie si un utilisateur est connecté et récupère son rôle
   useEffect(() => {
