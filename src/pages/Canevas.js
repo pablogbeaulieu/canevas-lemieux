@@ -151,7 +151,7 @@ Bien à vous,`;
       <li key={canevas} className="mb-2">
         {isTableauComparatif ? (
           <a
-            href="https://lemieuxassurance.sharepoint.com/:x:/s/AssurancedesParticuliers/ETR4yFKw-SxBvULzmdg9we0BSdtQcvy95t29y2adYatSzg?e=UNLRev"
+            href="https://lemieuxassurance-my.sharepoint.com/:x:/g/personal/pablo_beaulieu_lemieuxassurances_com/EZkaHubMfjdMhoGOg38TBzUBGYvU74sy3Vo4C3iOO7kheA?e=oZa2k3"
             target="_blank"
             rel="noopener noreferrer"
             className="block w-full text-left text-lg font-semibold p-2 border rounded bg-blue-100 hover:bg-blue-200 hover:text-blue-800 transition"
