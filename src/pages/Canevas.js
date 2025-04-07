@@ -17,30 +17,47 @@ function Canevas() {
   const [insuranceType, setInsuranceType] = useState("");
   const [insurerName, setInsurerName] = useState("");
 
-  // Récupération des canevas depuis Supabase
   const fetchCanevas = async () => {
     try {
       const { data, error } = await supabase.from("canevas").select("*");
-
+  
       if (error) {
         console.error("Erreur lors de la récupération des canevas :", error);
         return;
       }
-
-      // Structuration des données en catégories et sous-catégories
-      const formattedData = data.reduce((acc, item) => {
+  
+      // 🔴 1. Supprimer les canevas avec un titre vide ou null
+      const invalidCanevas = data.filter((item) => !item.title || item.title.trim() === "");
+      for (const bad of invalidCanevas) {
+        await supabase.from("canevas").delete().eq("id", bad.id);
+      }
+  
+      // 🔴 2. Supprimer les canevas avec une sous-catégorie vide ou null
+      const invalidSubCats = data.filter((item) => !item.subCategory || item.subCategory.trim() === "");
+      for (const bad of invalidSubCats) {
+        await supabase.from("canevas").delete().eq("id", bad.id);
+      }
+  
+      // 🔄 3. Nettoyer les canevas valides
+      const cleanedData = data.filter(
+        (item) =>
+          item.title && item.title.trim() !== "" &&
+          item.subCategory && item.subCategory.trim() !== ""
+      );
+  
+      const formattedData = cleanedData.reduce((acc, item) => {
         const { category, subCategory, title, content } = item;
         if (!acc[category]) acc[category] = {};
         if (!acc[category][subCategory]) acc[category][subCategory] = {};
         acc[category][subCategory][title] = content;
         return acc;
       }, {});
-
+  
       setCanevasData(formattedData);
     } catch (error) {
       console.error("Erreur lors de la récupération des canevas :", error);
     }
-  };
+  };   
 
   useEffect(() => {
     fetchCanevas();
@@ -131,59 +148,51 @@ Bien à vous,`;
         </div>
       )}
 
-      {/* Affichage des canevas */}
-      {selectedSubCategory && (
-        <div className="mt-4">
-          <h2 className="text-xl font-semibold">📜 Canevas :</h2>
-          <ul>
-          {Object.entries(canevasData[selectedCategory][selectedSubCategory]).map(([canevas, content]) => {
-  const isTableauComparatif =
-    selectedCategory === "BATEAUX" &&
-    selectedSubCategory === "Tous" &&
-    canevas.trim().toLowerCase() === "tableau comparatif";
+  {/* Affichage des canevas */}
+{selectedSubCategory && (
+  <div className="mt-4">
+    <h2 className="text-xl font-semibold">📜 Canevas :</h2>
+    <ul>
+      {Object.entries(canevasData[selectedCategory]?.[selectedSubCategory] || {})
+        .filter(([canevas]) => canevas && canevas.trim() !== "")
+        .map(([canevas, content]) => {
+          const isTableauComparatif =
+            selectedCategory === "BATEAUX" &&
+            selectedSubCategory === "Tous" &&
+            canevas.trim().toLowerCase() === "tableau comparatif";
 
-  const isAnnulation =
-    selectedCategory === "ANNU" &&
-    selectedSubCategory === "TOUS" &&
-    canevas.trim().toLowerCase().includes("annulation en court de terme ou au renouvellement");
-
-    return (
-      <li key={canevas} className="mb-2">
-        {isTableauComparatif ? (
-          <a
-            href="https://lemieuxassurance-my.sharepoint.com/:x:/g/personal/pablo_beaulieu_lemieuxassurances_com/EZkaHubMfjdMhoGOg38TBzUBGYvU74sy3Vo4C3iOO7kheA?e=oZa2k3"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full text-left text-lg font-semibold p-2 border rounded bg-blue-100 hover:bg-blue-200 hover:text-blue-800 transition"
-          >
-            {canevas} 🔗
-          </a>
-        ) : (
-          <button
-            className={`w-full text-left text-lg font-semibold p-2 border rounded transition ${
-              isAnnulation
-                ? "bg-red-100 hover:bg-red-200 text-red-800"
-                : "bg-gray-200 hover:bg-blue-500 hover:text-white"
-            }`}
-            onClick={() =>
-              handleCanevasClick(
-                selectedCategory,
-                selectedSubCategory,
-                canevas,
-                content
-              )
-            }
-          >
-            {canevas}
-          </button>
-        )}
-      </li>
-    );
-  })}
-  
-          </ul>
-        </div>
-      )}
+          return (
+            <li key={canevas} className="mb-2">
+              {isTableauComparatif ? (
+                <a
+                  href="https://lemieuxassurance.sharepoint.com/:x:/s/AssurancedesParticuliers/ETR4yFKw-SxBvULzmdg9we0BSdtQcvy95t29y2adYatSzg?e=UNLRev"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full text-left text-lg font-semibold p-2 border rounded bg-blue-100 hover:bg-blue-200 hover:text-blue-800 transition"
+                >
+                  {canevas} 🔗
+                </a>
+              ) : (
+                <button
+                  className="w-full text-left text-lg font-semibold p-2 border rounded bg-gray-200 hover:bg-blue-500 hover:text-white transition"
+                  onClick={() =>
+                    handleCanevasClick(
+                      selectedCategory,
+                      selectedSubCategory,
+                      canevas,
+                      content
+                    )
+                  }
+                >
+                  {canevas}
+                </button>
+              )}
+            </li>
+          );
+        })}
+    </ul>
+  </div>
+)}
 
 {/* Pop-up pour le script et le courriel */}
 {isScriptModalOpen && (
