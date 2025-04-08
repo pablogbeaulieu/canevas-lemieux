@@ -22,7 +22,10 @@ function AdminPage() {
 const [showUserManagement, setShowUserManagement] = useState(false);
 
 const fetchUsers = async () => {
-  const { data, error } = await supabase.from("users").select("id, email, isApproved");
+  const { data, error } = await supabase
+    .from("users")
+    .select("id, email, isApproved, last_active"); // 👈 On ajoute last_active ici
+
   if (!error) {
     setUsers(data);
   }
@@ -176,6 +179,27 @@ const fetchUsers = async () => {
     fetchUsers();
   };   
 
+  const getLastActiveText = (timestamp) => {
+    if (!timestamp) return { text: "Dernière activité inconnue", isOnline: false };
+  
+    const last = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - last;
+    const diffMin = Math.floor(diffMs / 1000 / 60);
+  
+    if (diffMin < 1) return { text: "En ligne maintenant", isOnline: true };
+    if (diffMin === 1) return { text: "Il y a 1 minute", isOnline: false };
+    if (diffMin < 60) return { text: `Il y a ${diffMin} minutes`, isOnline: false };
+  
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr === 1) return { text: "Il y a 1 heure", isOnline: false };
+    if (diffHr < 24) return { text: `Il y a ${diffHr} heures`, isOnline: false };
+  
+    const diffDay = Math.floor(diffHr / 24);
+    if (diffDay === 1) return { text: "Il y a 1 jour", isOnline: false };
+    return { text: `Il y a ${diffDay} jours`, isOnline: false };
+  };   
+
   return (
     <div className="p-10">
    <h1 className="text-3xl font-bold mb-6 text-blue-700">🛠️ Panneau d'administration</h1>
@@ -215,7 +239,23 @@ const fetchUsers = async () => {
         <ul>
           {users.map((user) => (
             <li key={user.id} className="flex justify-between items-center py-2 border-b">
-              <span>{user.email}</span>
+{(() => {
+  const { text, isOnline } = getLastActiveText(user.last_active);
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        <span>{user.email}</span>
+        <span
+          className={`h-2 w-2 rounded-full ${
+            isOnline ? "bg-green-500" : "bg-red-400"
+          }`}
+          title={text}
+        ></span>
+      </div>
+      <div className="text-sm text-gray-500">{text}</div>
+    </div>
+  );
+})()}
               <div className="flex gap-2">
                 {user.isApproved ? (
                   <button

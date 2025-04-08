@@ -43,25 +43,56 @@ function App() {
     }
   };  
 
-  // Vérifie si un utilisateur est connecté et récupère son rôle
+  const updateLastActive = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+  
+    await supabase
+      .from("users")
+      .update({ last_active: new Date().toISOString() })
+      .eq("id", user.id);
+  };  
+
   useEffect(() => {
     const getUser = async () => {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-
+  
       if (user) {
         setIsAuthenticated(true);
-        fetchUserRole(user.id);
+        await fetchUserRole(user.id);
+        await updateLastActive();
+  
+        const interval = setInterval(() => {
+          updateLastActive();
+        }, 30000); // toutes les 30 secondes
+  
+        setLoading(false); // ✅ Appelé maintenant après les actions
+  
+        return () => clearInterval(interval); // Nettoyage
       } else {
         setIsAuthenticated(false);
         setUserRole(null);
         localStorage.removeItem("userRole");
+        setLoading(false); // ✅ Important aussi ici
       }
-      setLoading(false);
     };
+  
 
+    const updateLastActive = async () => {
+      console.log("updateLastActive"); // 🔍 Debug
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+    
+      await supabase
+        .from("users")
+        .update({ last_active: new Date().toISOString() })
+        .eq("id", user.id);
+    };
+    
     getUser();
   }, []);
+   
 
   // Fonction pour la déconnexion
   const handleLogout = async () => {
