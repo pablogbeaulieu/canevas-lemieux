@@ -125,13 +125,26 @@ function AdminPage() {
   };
 
   const saveCanevasChanges = async () => {
-    await supabase
+    if (!editedTitle.trim()) {
+      alert("Le titre ne peut pas être vide.");
+      return;
+    }
+  
+    const { error } = await supabase
       .from("canevas")
-      .update({ title: editedTitle, content: editedContent })
+      .update({ title: editedTitle.trim(), content: editedContent })
       .eq("id", editingCanevasId);
+  
+    if (error) {
+      alert("❌ Erreur lors de la mise à jour.");
+      console.error(error);
+      return;
+    }
+  
     cancelEditing();
     fetchCanevas();
-  };
+    alert("✅ Canevas mis à jour !");
+  };  
 
   return (
     <div className="p-10">
