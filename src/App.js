@@ -1,29 +1,27 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { supabase } from "./api"; // Connexion à Supabase
+import { supabase } from "./api";
 import Dashboard from "./pages/Dashboard";
 import Canevas from "./pages/Canevas";
-import Repertoire from "./pages/Repertoire"; // 📌 Import de la nouvelle page Répertoire
+import Repertoire from "./pages/Repertoire";
 import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
-import AdminPage from "./pages/AdminPage"; // 📌 Import de la page Admin
+import AdminPage from "./pages/AdminPage";
 
 function App() {
-  // États pour suivre l'authentification et le rôle utilisateur
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Fonction pour récupérer le rôle utilisateur depuis Supabase
   const fetchUserRole = async (userId) => {
     if (!userId) return;
-  
+
     const { data, error } = await supabase
       .from("users")
       .select("role, isApproved")
       .eq("id", userId)
       .single();
-  
+
     if (error) {
       console.error("Erreur récupération rôle :", error.message);
       setUserRole(null);
@@ -41,67 +39,70 @@ function App() {
         localStorage.clear();
       }
     }
-  };  
+  };
 
   const updateLastActive = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-  
+
     await supabase
       .from("users")
       .update({ last_active: new Date().toISOString() })
       .eq("id", user.id);
-  };  
+  };
 
   useEffect(() => {
     const getUser = async () => {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
-  
+
       if (user) {
         setIsAuthenticated(true);
         await fetchUserRole(user.id);
         await updateLastActive();
-  
+
         const interval = setInterval(() => {
           updateLastActive();
         }, 30000); // toutes les 30 secondes
-  
-        setLoading(false); // ✅ Appelé maintenant après les actions
-  
-        return () => clearInterval(interval); // Nettoyage
+
+        setLoading(false);
+
+        return () => clearInterval(interval);
       } else {
         setIsAuthenticated(false);
         setUserRole(null);
         localStorage.removeItem("userRole");
-        setLoading(false); // ✅ Important aussi ici
+        setLoading(false);
       }
     };
-  
 
-    const updateLastActive = async () => {
-      console.log("updateLastActive"); // 🔍 Debug
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-    
-      await supabase
-        .from("users")
-        .update({ last_active: new Date().toISOString() })
-        .eq("id", user.id);
-    };
-    
     getUser();
-  }, []);
-   
 
-  // Fonction pour la déconnexion
+    // ✅ PATCH : Forcer le rafraîchissement si fichiers échouent à charger
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (let registration of registrations) {
+          registration.unregister();
+        }
+      });
+    }
+
+    window.addEventListener("error", (e) => {
+      if (e.target.tagName === "LINK" || e.target.tagName === "SCRIPT") {
+        console.warn("🔄 Ressource manquante, reload forcé...");
+        window.location.reload(true);
+      }
+    }, true);
+
+  }, []);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setIsAuthenticated(false);
     setUserRole(null);
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("userRole");
-    window.location.href = "/login"; // Redirection après déconnexion
+    window.location.href = "/login";
   };
 
   return (
@@ -111,20 +112,17 @@ function App() {
         <div className="space-x-4">
           <Link to="/dashboard" className="hover:underline">Accueil</Link>
 
-          {/* Affiche "Répertoire de Canevas" uniquement si l'utilisateur est connecté */}
           {isAuthenticated && (
             <>
               <Link to="/canevas" className="hover:underline">Répertoire de Canevas</Link>
-              <Link to="/repertoire" className="hover:underline">Répertoire Téléphonique</Link> {/* ✅ Nouvel onglet */}
+              <Link to="/repertoire" className="hover:underline">Répertoire Téléphonique</Link>
             </>
           )}
 
-          {/* Affiche "Admin" uniquement pour les administrateurs */}
           {isAuthenticated && userRole === "admin" && (
             <Link to="/admin" className="hover:underline">Admin</Link>
           )}
 
-          {/* Gestion connexion/déconnexion */}
           {!isAuthenticated ? (
             <>
               <Link to="/login" className="hover:underline">Se connecter</Link>
@@ -142,18 +140,15 @@ function App() {
         <div className="text-center p-10">Chargement...</div>
       ) : (
         <Routes>
-          {/* Redirection par défaut : vers Canevas si connecté, sinon vers Login */}
           <Route
             path="/"
             element={isAuthenticated ? <Navigate to="/canevas" replace /> : <Navigate to="/login" replace />}
           />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/canevas" element={<Canevas />} />
-          <Route path="/repertoire" element={<Repertoire />} /> {/* ✅ Ajout de la route Répertoire */}
+          <Route path="/repertoire" element={<Repertoire />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
-
-          {/* Protection de la route Admin */}
           <Route
             path="/admin"
             element={isAuthenticated && userRole === "admin" ? <AdminPage /> : <Navigate to="/dashboard" replace />}
