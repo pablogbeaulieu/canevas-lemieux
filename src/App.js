@@ -107,7 +107,7 @@ function App() {
 
   return (
     <Router>
-      <nav className="bg-blue-600 p-4 text-white flex justify-between">
+      <nav className="bg-blue-800 p-4 text-white flex justify-between">
         <div className="font-bold text-lg">Lemieux Assurances</div>
         <div className="space-x-4">
           <Link to="/dashboard" className="hover:underline">Accueil</Link>

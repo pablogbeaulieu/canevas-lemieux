@@ -21,6 +21,9 @@ function AdminPage() {
   const [users, setUsers] = useState([]);
 const [showUserManagement, setShowUserManagement] = useState(false);
 
+const [suggestions, setSuggestions] = useState([]);
+const [showSuggestionsSection, setShowSuggestionsSection] = useState(false);
+
 const fetchUsers = async () => {
   const { data, error } = await supabase
     .from("users")
@@ -28,6 +31,19 @@ const fetchUsers = async () => {
 
   if (!error) {
     setUsers(data);
+  }
+};
+
+const fetchSuggestions = async () => {
+  const { data, error } = await supabase
+    .from("suggestions")
+    .select("id, category, content, created_at, users(email)")
+    .order("created_at", { ascending: false });
+
+  if (!error) {
+    setSuggestions(data);
+  } else {
+    console.error("Erreur lors du chargement des suggestions :", error);
   }
 };
 
@@ -77,6 +93,12 @@ const fetchUsers = async () => {
   useEffect(() => {
     fetchCanevas();
   }, [selectedSubCategory]);
+
+  useEffect(() => {
+    if (showSuggestionsSection) {
+      fetchSuggestions();
+    }
+  }, [showSuggestionsSection]);  
 
   useEffect(() => {
     if (showUserManagement) {
@@ -146,6 +168,11 @@ const fetchUsers = async () => {
     setEditedContent("");
   };
 
+  const deleteSuggestion = async (id) => {
+    await supabase.from("suggestions").delete().eq("id", id);
+    fetchSuggestions();
+  };  
+
   const saveCanevasChanges = async () => {
     if (!editedTitle.trim()) {
       alert("Le titre ne peut pas être vide.");
@@ -208,16 +235,23 @@ const fetchUsers = async () => {
 <div className="flex flex-col sm:flex-row gap-4 mb-6">
   <button
     onClick={() => setShowUserManagement(!showUserManagement)}
-    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+    className="flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
   >
     {showUserManagement ? "🔽 Cacher la gestion des utilisateurs" : "👥 Gestion des utilisateurs"}
   </button>
 
   <button
     onClick={() => setShowCanevasSection(!showCanevasSection)}
-    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+    className="flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
   >
     {showCanevasSection ? "🔽 Cacher la gestion des canevas" : "📋 Gestion des canevas"}
+  </button>
+
+  <button
+    onClick={() => setShowSuggestionsSection(!showSuggestionsSection)}
+    className="flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+  >
+    {showSuggestionsSection ? "🔽 Cacher les suggestions" : "📨 Gérer les suggestions"}
   </button>
 </div>
 
@@ -443,6 +477,45 @@ const fetchUsers = async () => {
                 </ul>
               </div>
             )}
+    </motion.div>
+  )}
+</AnimatePresence>
+
+<AnimatePresence>
+  {showSuggestionsSection && (
+    <motion.div
+      key="suggestions-section"
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.3 }}
+      className="mt-6 overflow-hidden bg-gray-50 border p-4 rounded"
+    >
+      <h2 className="text-xl font-semibold mb-4 text-blue-700">📨 Suggestions reçues</h2>
+
+      {suggestions.length === 0 ? (
+        <p className="text-gray-500 italic">Aucune suggestion pour le moment.</p>
+      ) : (
+        <ul className="space-y-4">
+          {suggestions.map((sugg) => (
+            <li key={sugg.id} className="border-b pb-3">
+              <div className="text-sm text-gray-600 mb-1">
+                <strong>Type :</strong> {sugg.category} | <strong>Par :</strong> {sugg.users?.email || "Inconnu"}
+              </div>
+              <p className="text-gray-800 mb-2">{sugg.content}</p>
+              <div className="text-xs text-gray-500 mb-2">
+                Reçue le {new Date(sugg.created_at).toLocaleString("fr-CA")}
+              </div>
+              <button
+                onClick={() => deleteSuggestion(sugg.id)}
+                className="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+              >
+                Supprimer
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </motion.div>
   )}
 </AnimatePresence>
