@@ -141,10 +141,16 @@ function App() {
         <div className="text-center p-10">Chargement...</div>
       ) : (
         <Routes>
-          <Route
-            path="/"
-            element={isAuthenticated ? <Navigate to="/canevas" replace /> : <Navigate to="/login" replace />}
-          />
+<Route
+  path="/"
+  element={
+    window.location.pathname === "/reset-password"
+      ? <Navigate to="/reset-password" replace />
+      : isAuthenticated
+        ? <Navigate to="/canevas" replace />
+        : <Navigate to="/login" replace />
+  }
+/>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/canevas" element={<Canevas />} />
           <Route path="/repertoire" element={<Repertoire />} />
