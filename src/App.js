@@ -144,8 +144,9 @@ function App() {
 <Route
   path="/"
   element={
-    window.location.pathname === "/reset-password"
-      ? <Navigate to="/reset-password" replace />
+    // ✅ Si reset-password ou présence d'un token => NE REDIRIGE PAS
+    window.location.pathname === "/reset-password" || window.location.hash.includes("access_token")
+      ? null
       : isAuthenticated
         ? <Navigate to="/canevas" replace />
         : <Navigate to="/login" replace />
