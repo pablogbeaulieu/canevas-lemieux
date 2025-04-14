@@ -7,6 +7,7 @@ import Repertoire from "./pages/Repertoire";
 import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
 import AdminPage from "./pages/AdminPage";
+import ResetPassword from "./pages/ResetPassword";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -149,6 +150,7 @@ function App() {
           <Route path="/repertoire" element={<Repertoire />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/admin"
             element={isAuthenticated && userRole === "admin" ? <AdminPage /> : <Navigate to="/dashboard" replace />}

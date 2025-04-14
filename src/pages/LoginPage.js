@@ -5,26 +5,24 @@ import { useNavigate } from "react-router-dom";
 function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [userRole, setUserRole] = useState(null); // Stocke le rôle
+  const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
 
-  // 🔹 Fonction pour récupérer le rôle de l'utilisateur
   const fetchUserRole = async (userId) => {
     const { data, error } = await supabase
       .from("users")
       .select("role")
       .eq("id", userId)
-      .single(); // Prend un seul utilisateur
-  
+      .single();
+
     if (error) {
       console.error("❌ Erreur récupération rôle:", error);
       return null;
     }
-  
-    return data?.role; // Retourne "user" ou "admin"
+
+    return data?.role;
   };
 
-  // 🔹 Gestion de la connexion
   const handleLogin = async () => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -40,29 +38,40 @@ function LoginPage() {
       const user = data.user;
       if (!user) throw new Error("L'utilisateur n'a pas pu être trouvé.");
 
-      // 🔹 Récupère le rôle depuis Supabase
       const role = await fetchUserRole(user.id);
-      setUserRole(role); // Met à jour l'état
+      setUserRole(role);
 
-      // 🔹 Stocke le rôle dans localStorage pour l'accès rapide
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("userId", user.id);
       localStorage.setItem("email", user.email);
-      localStorage.setItem("role", role || "user"); // Par défaut, "user"
+      localStorage.setItem("role", role || "user");
 
       console.log(`✅ Utilisateur connecté : ${user.email}, Rôle : ${role}`);
 
-      // Redirige l'utilisateur selon son rôle
       if (role === "admin") {
         navigate("/admin-dashboard");
       } else {
         navigate("/dashboard");
       }
 
-      window.location.reload(); // Rafraîchir l'application après connexion
+      window.location.reload();
     } catch (err) {
       console.error("❌ Erreur lors de la connexion :", err);
       alert("Une erreur s'est produite lors de la connexion.");
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      alert("Veuillez entrer votre courriel pour réinitialiser le mot de passe.");
+      return;
+    }
+
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email);
+    if (error) {
+      alert("Erreur lors de l'envoi du courriel : " + error.message);
+    } else {
+      alert("Un courriel de réinitialisation a été envoyé à " + email);
     }
   };
 
@@ -96,6 +105,13 @@ function LoginPage() {
           className="mt-4 w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
         >
           Se connecter
+        </button>
+
+        <button
+          onClick={handleResetPassword}
+          className="mt-2 text-sm text-blue-600 underline hover:text-blue-800"
+        >
+          Mot de passe oublié ?
         </button>
       </div>
     </div>
