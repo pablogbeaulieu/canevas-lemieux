@@ -12,7 +12,7 @@ import ResetPassword from "./pages/ResetPassword";
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Forcer nouveau déploiement - test reset-password
 
   const fetchUserRole = async (userId) => {
     if (!userId) return;
