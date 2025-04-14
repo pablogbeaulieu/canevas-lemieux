@@ -4,19 +4,27 @@ import { useNavigate } from "react-router-dom";
 
 function ResetPassword() {
   const [newPassword, setNewPassword] = useState("");
-  const [isTokenValid, setIsTokenValid] = useState(false);
   const [message, setMessage] = useState("");
+  const [userReady, setUserReady] = useState(false);
   const navigate = useNavigate();
 
+  // Attend que Supabase connecte l'utilisateur via le lien
   useEffect(() => {
-    // Vérifie si le token est présent dans l'URL
-    const hash = window.location.hash;
-    if (hash.includes("access_token") && hash.includes("type=recovery")) {
-      setIsTokenValid(true);
-    } else {
-      setIsTokenValid(false);
-      setMessage("Lien invalide ou expiré. Veuillez recommencer la procédure.");
-    }
+    const checkSession = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserReady(true);
+      } else {
+        // Écoute si l'user se connecte via access_token
+        supabase.auth.onAuthStateChange((event, session) => {
+          if (event === "PASSWORD_RECOVERY" && session?.user) {
+            setUserReady(true);
+          }
+        });
+      }
+    };
+
+    checkSession();
   }, []);
 
   const handleUpdatePassword = async () => {
@@ -25,26 +33,22 @@ function ResetPassword() {
       return;
     }
 
-    const { data, error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
 
     if (error) {
       setMessage("Erreur lors de la mise à jour : " + error.message);
     } else {
-      setMessage("🎉 Mot de passe mis à jour avec succès !");
-      setTimeout(() => {
-        navigate("/"); // Redirige vers la page de login
-      }, 2000);
+      setMessage("✅ Mot de passe mis à jour. Redirection en cours...");
+      setTimeout(() => navigate("/login"), 2000);
     }
   };
 
   return (
     <div className="flex items-center justify-center h-screen bg-gray-100">
       <div className="p-8 bg-white rounded shadow-lg w-96">
-        <h2 className="text-xl font-bold text-center text-blue-700 mb-4">Réinitialisation du mot de passe</h2>
+        <h2 className="text-xl font-bold text-blue-700 text-center mb-4">Réinitialisation du mot de passe</h2>
 
-        {isTokenValid ? (
+        {userReady ? (
           <>
             <label className="block text-gray-700 mb-2">Nouveau mot de passe</label>
             <input
@@ -61,10 +65,10 @@ function ResetPassword() {
             </button>
           </>
         ) : (
-          <p className="text-red-600 text-center">{message}</p>
+          <p className="text-center text-gray-600">⏳ Vérification du lien en cours...</p>
         )}
 
-        {message && isTokenValid && <p className="mt-4 text-green-600 text-center">{message}</p>}
+        {message && <p className="mt-4 text-center text-green-600">{message}</p>}
       </div>
     </div>
   );
