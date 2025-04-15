@@ -1,18 +1,19 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "./api";
+import { AnimatePresence, motion } from "framer-motion";  // Ajout de framer-motion
 import Dashboard from "./pages/Dashboard";
 import Canevas from "./pages/Canevas";
 import Repertoire from "./pages/Repertoire";
 import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
 import AdminPage from "./pages/AdminPage";
-import ResetPassword from "./pages/ResetPassword";
+import Profile from "./pages/Profile"; // Ajout du Profil
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState(null);
-  const [loading, setLoading] = useState(true); // Forcer nouveau déploiement - test reset-password
+  const [loading, setLoading] = useState(true);
 
   const fetchUserRole = async (userId) => {
     if (!userId) return;
@@ -64,7 +65,7 @@ function App() {
 
         const interval = setInterval(() => {
           updateLastActive();
-        }, 30000); // toutes les 30 secondes
+        }, 30000);
 
         setLoading(false);
 
@@ -79,7 +80,6 @@ function App() {
 
     getUser();
 
-    // ✅ PATCH : Forcer le rafraîchissement si fichiers échouent à charger
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.getRegistrations().then((registrations) => {
         for (let registration of registrations) {
@@ -94,7 +94,6 @@ function App() {
         window.location.reload(true);
       }
     }, true);
-
   }, []);
 
   const handleLogout = async () => {
@@ -130,9 +129,7 @@ function App() {
               <Link to="/register" className="hover:underline">S'inscrire</Link>
             </>
           ) : (
-            <button onClick={handleLogout} className="hover:underline">
-              Se déconnecter
-            </button>
+            <Link to="/profile" className="hover:underline">Profil</Link> // Profil ajouté ici
           )}
         </div>
       </nav>
@@ -140,28 +137,28 @@ function App() {
       {loading ? (
         <div className="text-center p-10">Chargement...</div>
       ) : (
-        <Routes>
-<Route
-  path="/"
-  element={
-    loading || window.location.pathname === "/reset-password" || window.location.hash.includes("access_token")
-      ? null
-      : isAuthenticated
-        ? <Navigate to="/canevas" replace />
-        : <Navigate to="/login" replace />
-  }
-/>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/canevas" element={<Canevas />} />
-          <Route path="/repertoire" element={<Repertoire />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route
-            path="/admin"
-            element={isAuthenticated && userRole === "admin" ? <AdminPage /> : <Navigate to="/dashboard" replace />}
-          />
-        </Routes>
+        <AnimatePresence>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                isAuthenticated
+                  ? <Navigate to="/dashboard" replace /> // Redirection vers le dashboard
+                  : <Navigate to="/login" replace />
+              }
+            />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/canevas" element={<Canevas />} />
+            <Route path="/repertoire" element={<Repertoire />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route
+              path="/admin"
+              element={isAuthenticated && userRole === "admin" ? <AdminPage /> : <Navigate to="/dashboard" replace />}
+            />
+          </Routes>
+        </AnimatePresence>
       )}
     </Router>
   );

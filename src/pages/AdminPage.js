@@ -103,6 +103,7 @@ const fetchSuggestions = async () => {
   useEffect(() => {
     if (showUserManagement) {
       fetchUsers();
+      fetchResetRequests(); // 👈 Ajout important
     }
   }, [showUserManagement]);  
 
@@ -204,7 +205,27 @@ const fetchSuggestions = async () => {
   const disapproveUser = async (userId) => {
     await supabase.from("users").update({ isApproved: false }).eq("id", userId);
     fetchUsers();
-  };   
+  };  
+
+  const deleteResetRequest = async (id) => {
+    await supabase.from("password_reset_requests").delete().eq("id", id);
+    fetchResetRequests();
+  };  
+  
+  const [resetRequests, setResetRequests] = useState([]);
+
+  const fetchResetRequests = async () => {
+    const { data, error } = await supabase
+      .from("password_reset_requests")
+      .select("*")
+      .order("requested_at", { ascending: false });
+  
+    if (!error) {
+      setResetRequests(data);
+    } else {
+      console.error("Erreur fetch demandes de reset :", error.message);
+    }
+  };  
 
   const getLastActiveText = (timestamp) => {
     if (!timestamp) return { text: "Dernière activité inconnue", isOnline: false };
@@ -266,51 +287,80 @@ const fetchSuggestions = async () => {
       transition={{ duration: 0.3 }}
       className="mb-8 border rounded p-4 bg-gray-50 overflow-hidden"
     >
+
+<h2 className="text-xl font-bold mb-7">👤 Gestion des accès utilisateurs</h2>
+
       <h2 className="text-xl font-semibold mb-4">👥 Liste des utilisateurs</h2>
-      {users.length === 0 ? (
-        <p>Aucun utilisateur trouvé.</p>
-      ) : (
-        <ul>
-          {users.map((user) => (
+
+      {/* 🔹 Bloc des utilisateurs */}
+      <ul className="divide-y">
+        {users.map((user) => {
+          const { text, isOnline } = getLastActiveText(user.last_active);
+          return (
             <li key={user.id} className="flex justify-between items-center py-2 border-b">
-{(() => {
-  const { text, isOnline } = getLastActiveText(user.last_active);
-  return (
-    <div>
-      <div className="flex items-center gap-2">
-        <span>{user.email}</span>
-        <span
-          className={`h-2 w-2 rounded-full ${
-            isOnline ? "bg-green-500" : "bg-red-400"
-          }`}
-          title={text}
-        ></span>
-      </div>
-      <div className="text-sm text-gray-500">{text}</div>
-    </div>
-  );
-})()}
-              <div className="flex gap-2">
-                {user.isApproved ? (
-                  <button
-                    onClick={() => disapproveUser(user.id)}
-                    className="bg-red-500 text-white px-2 py-1 rounded text-sm"
-                  >
-                    ❌ Désapprouver
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => approveUser(user.id)}
-                    className="bg-green-500 text-white px-2 py-1 rounded text-sm"
-                  >
-                    ✅ Approuver
-                  </button>
-                )}
+              <div className="flex justify-between w-full items-center">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span>{user.email}</span>
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        isOnline ? "bg-green-500" : "bg-red-400"
+                      }`}
+                      title={text}
+                    ></span>
+                  </div>
+                  <div className="text-sm text-gray-500">{text}</div>
+                </div>
+                <div className="flex gap-2">
+                  {user.isApproved ? (
+                    <button
+                      onClick={() => disapproveUser(user.id)}
+                      className="bg-red-500 text-white px-2 py-1 rounded text-sm"
+                    >
+                      ❌ Désapprouver
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => approveUser(user.id)}
+                      className="bg-green-500 text-white px-2 py-1 rounded text-sm"
+                    >
+                      ✅ Approuver
+                    </button>
+                  )}
+                </div>
               </div>
             </li>
-          ))}
-        </ul>
-      )}
+          );
+        })}
+      </ul>
+
+      {/* 🔹 Bloc des demandes de reset */}
+      <div className="mb-6">
+        <hr className="my-6 border-t" />
+        <h3 className="text-lg font-semibold mb-3 border-b pb-2">📨 Demandes de réinitialisation de mot de passe</h3>
+        {resetRequests.length === 0 ? (
+          <p className="text-sm text-gray-500">Aucune demande pour le moment.</p>
+        ) : (
+          <ul className="divide-y bg-yellow-100 border border-yellow-400 rounded-md mb-4">
+            {resetRequests.map((req) => (
+              <li key={req.id} className="py-2 px-3 flex justify-between items-center">
+                <div>
+                  <p className="font-medium">{req.email}</p>
+                  <p className="text-xs text-gray-500">
+                    Reçue le {new Date(req.requested_at).toLocaleString("fr-CA")}
+                  </p>
+                </div>
+                <button
+                  onClick={() => deleteResetRequest(req.id)}
+                  className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600"
+                >
+                  Supprimer
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </motion.div>
   )}
 </AnimatePresence>

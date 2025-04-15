@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { supabase } from "../api"; // Connexion à Supabase
+import { useState } from "react";
+import { supabase } from "../api";
 import { useNavigate } from "react-router-dom";
 
 function LoginPage() {
@@ -48,12 +48,7 @@ function LoginPage() {
 
       console.log(`✅ Utilisateur connecté : ${user.email}, Rôle : ${role}`);
 
-      if (role === "admin") {
-        navigate("/admin-dashboard");
-      } else {
-        navigate("/dashboard");
-      }
-
+      navigate(role === "admin" ? "/admin-dashboard" : "/dashboard");
       window.location.reload();
     } catch (err) {
       console.error("❌ Erreur lors de la connexion :", err);
@@ -63,15 +58,19 @@ function LoginPage() {
 
   const handleResetPassword = async () => {
     if (!email) {
-      alert("Veuillez entrer votre courriel pour réinitialiser le mot de passe.");
+      alert("Veuillez entrer votre courriel pour envoyer la demande.");
       return;
     }
 
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email);
+    const { error } = await supabase.from("password_reset_requests").insert([
+      { email }
+    ]);
+
     if (error) {
-      alert("Erreur lors de l'envoi du courriel : " + error.message);
+      console.error("Erreur Supabase :", error.message);
+      alert("Erreur lors de la demande : " + error.message);
     } else {
-      alert("Un courriel de réinitialisation a été envoyé à " + email);
+      alert("Votre demande de réinitialisation a été enregistrée. Un administrateur vous contactera.");
     }
   };
 
