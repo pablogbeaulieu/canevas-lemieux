@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../api";
 import { useNavigate } from "react-router-dom";
 
-window.supabase = supabase; // Pour debug dans la console navigateur
+window.supabase = supabase; // Pour debug console
 
 function ResetPassword() {
   const [newPassword, setNewPassword] = useState("");
@@ -13,23 +13,28 @@ function ResetPassword() {
   useEffect(() => {
     const hash = window.location.hash;
 
-    if (hash.includes("access_token")) {
+    // 🔍 Extraire le token de l’URL
+    const match = hash.match(/access_token=([^&]+)/);
+    const token = match ? match[1] : null;
+
+    if (token) {
       supabase.auth
-        .exchangeCodeForSession(hash)
-        .then(async () => {
-          const { data: { user }, error } = await supabase.auth.getUser();
-          if (user) {
+        .verifyOtp({ type: "recovery", token })
+        .then(async (res) => {
+          if (res.data?.user) {
+            console.log("✅ Utilisateur connecté :", res.data.user);
             setUserReady(true);
           } else {
-            setMessage("❌ Échec de la récupération de session. Veuillez réessayer.");
+            console.error("Aucun utilisateur détecté après verifyOtp");
+            setMessage("❌ Impossible de valider le lien. Réessayez.");
           }
         })
         .catch((err) => {
-          console.error("Erreur lors de la récupération de session :", err.message);
-          setMessage("⚠️ Le lien est invalide ou a expiré. Veuillez refaire la procédure.");
+          console.error("Erreur verifyOtp:", err.message);
+          setMessage("⚠️ Lien invalide ou expiré. Veuillez refaire la procédure.");
         });
     } else {
-      setMessage("❌ Lien invalide. Veuillez demander une nouvelle réinitialisation.");
+      setMessage("❌ Lien invalide. Veuillez recommencer.");
     }
   }, []);
 
