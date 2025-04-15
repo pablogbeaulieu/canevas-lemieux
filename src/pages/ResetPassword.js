@@ -12,11 +12,17 @@ function ResetPassword() {
 
   useEffect(() => {
     const hash = window.location.hash;
+
     if (hash.includes("access_token")) {
       supabase.auth
         .exchangeCodeForSession(hash)
-        .then(() => {
-          setUserReady(true);
+        .then(async () => {
+          const { data: { user }, error } = await supabase.auth.getUser();
+          if (user) {
+            setUserReady(true);
+          } else {
+            setMessage("❌ Échec de la récupération de session. Veuillez réessayer.");
+          }
         })
         .catch((err) => {
           console.error("Erreur lors de la récupération de session :", err.message);
