@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../api";
-window.supabase = supabase; // <-- ajoute cette ligne
 import { useNavigate } from "react-router-dom";
+
+window.supabase = supabase; // ✅ Défini en dehors du bloc d'import, pas d'erreur ESLint
 
 function ResetPassword() {
   const [newPassword, setNewPassword] = useState("");
