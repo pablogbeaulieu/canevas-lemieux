@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../api";
 import { useNavigate } from "react-router-dom";
 
-window.supabase = supabase; // ✅ Défini en dehors du bloc d'import, pas d'erreur ESLint
+window.supabase = supabase; // Pour debug dans la console navigateur
 
 function ResetPassword() {
   const [newPassword, setNewPassword] = useState("");
@@ -10,23 +10,21 @@ function ResetPassword() {
   const [userReady, setUserReady] = useState(false);
   const navigate = useNavigate();
 
-  // Attend que Supabase connecte l'utilisateur via le lien
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserReady(true);
-      } else {
-        // Écoute si l'user se connecte via access_token
-        supabase.auth.onAuthStateChange((event, session) => {
-          if (event === "PASSWORD_RECOVERY" && session?.user) {
-            setUserReady(true);
-          }
+    const hash = window.location.hash;
+    if (hash.includes("access_token")) {
+      supabase.auth
+        .exchangeCodeForSession(hash)
+        .then(() => {
+          setUserReady(true);
+        })
+        .catch((err) => {
+          console.error("Erreur lors de la récupération de session :", err.message);
+          setMessage("⚠️ Le lien est invalide ou a expiré. Veuillez refaire la procédure.");
         });
-      }
-    };
-
-    checkSession();
+    } else {
+      setMessage("❌ Lien invalide. Veuillez demander une nouvelle réinitialisation.");
+    }
   }, []);
 
   const handleUpdatePassword = async () => {
@@ -67,10 +65,12 @@ function ResetPassword() {
             </button>
           </>
         ) : (
-          <p className="text-center text-gray-600">⏳ Vérification du lien en cours...</p>
+          <p className="text-center text-gray-600">{message || "⏳ Vérification du lien en cours..."}</p>
         )}
 
-        {message && <p className="mt-4 text-center text-green-600">{message}</p>}
+        {message && userReady && (
+          <p className="mt-4 text-center text-green-600">{message}</p>
+        )}
       </div>
     </div>
   );
