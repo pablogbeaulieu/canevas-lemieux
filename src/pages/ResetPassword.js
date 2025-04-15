@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../api";
+window.supabase = supabase; // <-- ajoute cette ligne
 import { useNavigate } from "react-router-dom";
 
 function ResetPassword() {
