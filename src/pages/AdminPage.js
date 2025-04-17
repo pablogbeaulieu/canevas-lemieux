@@ -24,10 +24,15 @@ const [showUserManagement, setShowUserManagement] = useState(false);
 const [suggestions, setSuggestions] = useState([]);
 const [showSuggestionsSection, setShowSuggestionsSection] = useState(false);
 
+const [newsList, setNewsList] = useState([]);
+const [newNewsTitle, setNewNewsTitle] = useState("");
+const [newNewsContent, setNewNewsContent] = useState("");
+const [showNewsSection, setShowNewsSection] = useState(false);
+
 const fetchUsers = async () => {
   const { data, error } = await supabase
-    .from("users")
-    .select("id, email, isApproved, last_active"); // 👈 On ajoute last_active ici
+  .from("users")
+  .select("id, email, isApproved, role, last_active");
 
   if (!error) {
     setUsers(data);
@@ -44,6 +49,19 @@ const fetchSuggestions = async () => {
     setSuggestions(data);
   } else {
     console.error("Erreur lors du chargement des suggestions :", error);
+  }
+};
+
+const fetchNews = async () => {
+  const { data, error } = await supabase
+    .from("news")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (!error) {
+    setNewsList(data);
+  } else {
+    console.error("Erreur lors du chargement des nouvelles :", error.message);
   }
 };
 
@@ -99,6 +117,12 @@ const fetchSuggestions = async () => {
       fetchSuggestions();
     }
   }, [showSuggestionsSection]);  
+
+  useEffect(() => {
+    if (showNewsSection) {
+      fetchNews();
+    }
+  }, [showNewsSection]);  
 
   useEffect(() => {
     if (showUserManagement) {
@@ -211,7 +235,32 @@ const fetchSuggestions = async () => {
     await supabase.from("password_reset_requests").delete().eq("id", id);
     fetchResetRequests();
   };  
+
+  const deleteUser = async (userId) => {
+    const { error } = await supabase.from("users").delete().eq("id", userId);
+    if (error) {
+      alert("❌ Erreur lors de la suppression.");
+      console.error(error);
+    } else {
+      alert("✅ Utilisateur supprimé.");
+      fetchUsers(); // On recharge la liste à jour
+    }
+  };  
   
+  const promoteToAdmin = async (userId) => {
+    await supabase.from("users").update({ role: "admin" }).eq("id", userId);
+    setTimeout(() => {
+      fetchUsers();
+    }, 300); // petite pause avant de rafraîchir
+  };  
+  
+  const demoteToUser = async (userId) => {
+    await supabase.from("users").update({ role: "user" }).eq("id", userId);
+    setTimeout(() => {
+      fetchUsers();
+    }, 300);
+  };   
+
   const [resetRequests, setResetRequests] = useState([]);
 
   const fetchResetRequests = async () => {
@@ -274,6 +323,14 @@ const fetchSuggestions = async () => {
   >
     {showSuggestionsSection ? "🔽 Cacher les suggestions" : "📨 Gérer les suggestions"}
   </button>
+
+  <button
+  onClick={() => setShowNewsSection(!showNewsSection)}
+  className="flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+>
+  {showNewsSection ? "🔽 Cacher les nouveautés" : "🆕 Gérer les nouveautés"}
+</button>
+
 </div>
 
 {/* Gestion des utilisateurs */}
@@ -287,6 +344,7 @@ const fetchSuggestions = async () => {
       transition={{ duration: 0.3 }}
       className="mb-8 border rounded p-4 bg-gray-50 overflow-hidden"
     >
+
 
 <h2 className="text-xl font-bold mb-7">👤 Gestion des accès utilisateurs</h2>
 
@@ -312,22 +370,44 @@ const fetchSuggestions = async () => {
                   <div className="text-sm text-gray-500">{text}</div>
                 </div>
                 <div className="flex gap-2">
-                  {user.isApproved ? (
-                    <button
-                      onClick={() => disapproveUser(user.id)}
-                      className="bg-red-500 text-white px-2 py-1 rounded text-sm"
-                    >
-                      ❌ Désapprouver
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => approveUser(user.id)}
-                      className="bg-green-500 text-white px-2 py-1 rounded text-sm"
-                    >
-                      ✅ Approuver
-                    </button>
-                  )}
-                </div>
+  {user.isApproved ? (
+    <button onClick={() => disapproveUser(user.id)} className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-sm">
+      ❌ Désapprouver
+    </button>
+  ) : (
+    <button onClick={() => approveUser(user.id)} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-sm">
+      ✅ Approuver
+    </button>
+  )}
+
+{user.role !== "admin" ? (
+  <button
+    onClick={() => promoteToAdmin(user.id)}
+    className="bg-emerald-500 hover:bg-emerald-600 text-white px-2 py-1 rounded text-sm"
+  >
+    ⭐ Promouvoir admin
+  </button>
+) : (
+  <button
+    onClick={() => demoteToUser(user.id)}
+    className="bg-gray-400 hover:bg-gray-500 text-white px-2 py-1 rounded text-sm"
+  >
+    ⚙️ Rétrograder
+  </button>
+)}
+
+  <button
+    onClick={() => {
+      const confirmDelete = window.confirm("⚠️ Êtes-vous certain de vouloir supprimer ce compte utilisateur ?");
+      if (confirmDelete) {
+        deleteUser(user.id);
+      }
+    }}
+    className="bg-red-600 text-white px-2 py-1 rounded text-sm hover:bg-red-700"
+  >
+    🗑️ Supprimer
+  </button>
+</div>
               </div>
             </li>
           );
@@ -531,6 +611,7 @@ const fetchSuggestions = async () => {
   )}
 </AnimatePresence>
 
+{/* SECTION Suggestions */}  
 <AnimatePresence>
   {showSuggestionsSection && (
     <motion.div
@@ -542,7 +623,6 @@ const fetchSuggestions = async () => {
       className="mt-6 overflow-hidden bg-gray-50 border p-4 rounded"
     >
       <h2 className="text-xl font-semibold mb-4 text-blue-700">📨 Suggestions reçues</h2>
-
       {suggestions.length === 0 ? (
         <p className="text-gray-500 italic">Aucune suggestion pour le moment.</p>
       ) : (
@@ -564,6 +644,99 @@ const fetchSuggestions = async () => {
               </button>
             </li>
           ))}
+        </ul>
+      )}
+    </motion.div>
+  )}
+</AnimatePresence>
+
+{/* SECTION News (Quoi de neuf) */}  
+<AnimatePresence>
+  {showNewsSection && (
+    <motion.div
+      key="news-section"
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.3 }}
+      className="mt-6 overflow-hidden bg-gray-50 border p-4 rounded"
+    >
+      <h2 className="text-xl font-semibold mb-4 text-blue-700">🆕 Quoi de neuf ?</h2>
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Titre de la nouveauté"
+          value={newNewsTitle}
+          onChange={(e) => setNewNewsTitle(e.target.value)}
+          className="w-full p-2 border rounded mb-2"
+        />
+        <textarea
+          placeholder="Contenu"
+          value={newNewsContent}
+          onChange={(e) => setNewNewsContent(e.target.value)}
+          className="w-full p-2 border rounded mb-2"
+          rows={4}
+        />
+        <button
+          onClick={async () => {
+            if (!newNewsTitle.trim() || !newNewsContent.trim()) {
+              alert("Titre et contenu requis.");
+              return;
+            }
+            const { error } = await supabase.from("news").insert([
+              { title: newNewsTitle, content: newNewsContent },
+            ]);
+            if (!error) {
+              alert("✅ Nouvelle ajoutée !");
+              setNewNewsTitle("");
+              setNewNewsContent("");
+              fetchNews();
+            } else {
+              alert("❌ Erreur");
+              console.error(error);
+            }
+          }}
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+        >
+          Ajouter
+        </button>
+      </div>
+
+      <hr className="my-4" />
+
+      {newsList.length === 0 ? (
+        <p className="text-gray-500 italic">Aucune nouveauté pour le moment.</p>
+      ) : (
+        <ul className="space-y-4">
+{newsList.map((news) => (
+  <li key={news.id} className="border-b pb-3 flex justify-between items-start">
+    <div>
+      <p className="font-bold">{news.title}</p>
+      <p className="text-gray-700">{news.content}</p>
+      <p className="text-xs text-gray-500 mt-1">
+        Publié le {new Date(news.created_at).toLocaleString("fr-CA")}
+      </p>
+    </div>
+    <button
+      onClick={async () => {
+        const confirmDelete = window.confirm("⚠️ Supprimer cette nouveauté ?");
+        if (confirmDelete) {
+          const { error } = await supabase.from("news").delete().eq("id", news.id);
+          if (!error) {
+            alert("🗑️ Nouvelle supprimée !");
+            fetchNews();
+          } else {
+            alert("❌ Erreur lors de la suppression");
+            console.error(error);
+          }
+        }
+      }}
+      className="ml-4 text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+    >
+      Supprimer
+    </button>
+  </li>
+))}
         </ul>
       )}
     </motion.div>
