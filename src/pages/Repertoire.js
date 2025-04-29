@@ -16,6 +16,11 @@ function Repertoire() {
   const [newCourriel, setNewCourriel] = useState("");
   const [isNewAssureur, setIsNewAssureur] = useState(false);
 
+  const [editingId, setEditingId] = useState(null);
+const [editedCategorie, setEditedCategorie] = useState("");
+const [editedTelephone, setEditedTelephone] = useState("");
+const [editedCourriel, setEditedCourriel] = useState("");
+
   useEffect(() => {
     fetchContacts();
     fetchAssureurs();
@@ -86,6 +91,62 @@ function Repertoire() {
       fetchAssureurs();
     }
   };
+
+  const startEditing = (contact) => {
+    setEditingId(contact.id);
+    setEditedCategorie(contact.categorie);
+    setEditedTelephone(contact.telephone);
+    setEditedCourriel(contact.courriel);
+  };
+  
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditedCategorie("");
+    setEditedTelephone("");
+    setEditedCourriel("");
+  };
+  
+  const saveEdits = async () => {
+    const { error } = await supabase
+      .from("repertoire")
+      .update({
+        categorie: editedCategorie,
+        telephone: editedTelephone,
+        courriel: editedCourriel,
+      })
+      .eq("id", editingId);
+  
+    if (!error) {
+      fetchContacts();
+      cancelEditing();
+    }
+  };  
+
+  const deleteContact = async (id) => {
+    const confirmDelete = window.confirm("❌ Supprimer ce contact ?");
+    if (confirmDelete) {
+      const { error } = await supabase.from("repertoire").delete().eq("id", id);
+      if (!error) fetchContacts();
+    }
+  };  
+
+  const deleteAssureur = async (assureurName) => {
+    const confirmDelete = window.confirm(`⚠️ Supprimer l'assureur "${assureurName}" et tous ses contacts ?`);
+    if (confirmDelete) {
+      const { error } = await supabase
+        .from("repertoire")
+        .delete()
+        .eq("assureur", assureurName);
+  
+      if (!error) {
+        fetchContacts();
+        fetchAssureurs();
+      } else {
+        alert("❌ Erreur lors de la suppression");
+        console.error(error);
+      }
+    }
+  };  
 
   return (
     <div className="p-6">
@@ -170,7 +231,18 @@ function Repertoire() {
               className="flex justify-between items-center bg-gray-200 p-3 cursor-pointer hover:bg-gray-300 transition-all duration-300 rounded-md shadow-md"
               onClick={() => setSelectedAssureur(selectedAssureur === assureur ? null : assureur)}
             >
-              <h2 className="text-xl font-semibold">{assureur}</h2>
+              <div className="flex items-center gap-2">
+  <h2 className="text-xl font-semibold">{assureur}</h2>
+  {userRole === "admin" && (
+    <button
+      onClick={() => deleteAssureur(assureur)}
+      className="text-red-600 hover:text-red-800 text-sm"
+      title="Supprimer l’assureur"
+    >
+      Supprimer
+    </button>
+  )}
+</div>
               <span className={`transform transition-transform duration-300 ${selectedAssureur === assureur ? "rotate-180" : "rotate-0"}`}>
                 🔽
               </span>
@@ -181,13 +253,35 @@ function Repertoire() {
                 selectedAssureur === assureur ? "max-h-screen opacity-100 scale-100 mt-2" : "max-h-0 opacity-0 scale-95"
               }`}
             >
-              <ul>
-                {groupedContacts[assureur]?.map((contact) => (
-                  <li key={contact.id} className="p-2 border-b transition-all duration-300 hover:bg-gray-100 rounded-md">
-                    <strong>📌 {contact.categorie} :</strong> 📞 {contact.telephone} ✉️ {contact.courriel}
-                  </li>
-                ))}
-              </ul>
+<ul>
+  {groupedContacts[assureur]?.map((contact) => (
+    <li key={contact.id} className="p-2 border-b transition-all duration-300 hover:bg-gray-100 rounded-md">
+      {editingId === contact.id ? (
+        <div className="space-y-2">
+          <input value={editedCategorie} onChange={(e) => setEditedCategorie(e.target.value)} className="p-1 border rounded w-full" />
+          <input value={editedTelephone} onChange={(e) => setEditedTelephone(e.target.value)} className="p-1 border rounded w-full" />
+          <input value={editedCourriel} onChange={(e) => setEditedCourriel(e.target.value)} className="p-1 border rounded w-full" />
+          <div className="flex gap-2 mt-1">
+            <button onClick={saveEdits} className="bg-green-500 text-white px-2 py-1 rounded text-sm">💾 Enregistrer</button>
+            <button onClick={cancelEditing} className="bg-gray-500 text-white px-2 py-1 rounded text-sm">✖️ Annuler</button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex justify-between items-center">
+          <span>
+            <strong>📌 {contact.categorie} :</strong> 📞 {contact.telephone} ✉️ {contact.courriel}
+          </span>
+          {userRole === "admin" && (
+            <div className="flex gap-2 ml-2">
+              <button onClick={() => startEditing(contact)} className="text-blue-600 hover:text-blue-800 text-sm">Modifier</button>
+              <button onClick={() => deleteContact(contact.id)} className="text-red-600 hover:text-red-800 text-sm">Supprimer</button>
+            </div>
+          )}
+        </div>
+      )}
+    </li>
+  ))}
+</ul>
             </div>
           </div>
         ))
