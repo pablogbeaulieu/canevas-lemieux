@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Ajout de styles personnalisés */
+:root {
+  --primary-color: #5fc9f3;
+  --secondary-color: #ff6b6b;
+  --background-color: #f2f4f8;
+  --text-color: #333;
+}
+
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: 'Poppins', sans-serif;
+}
+
+.neu-button {
+  background: linear-gradient(145deg, #ffffff, #d1d9e6);
+  box-shadow: 4px 4px 8px #b8beca, -4px -4px 8px #ffffff;
+  border-radius: 12px;
+  transition: all 0.3s ease-in-out;
+}
+
+.neu-button:hover {
+  background: linear-gradient(145deg, #d1d9e6, #ffffff);
+  box-shadow: 2px 2px 4px #b8beca, -2px -2px 4px #ffffff;
+}
+
+.neu-input {
+  background: #ffffff;
+  box-shadow: inset 3px 3px 5px #d1d9e6, inset -3px -3px 5px #ffffff;
+  border-radius: 8px;
+  padding: 10px;
+  border: none;
+  outline: none;
+}
