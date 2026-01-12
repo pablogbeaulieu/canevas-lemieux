@@ -139,7 +139,7 @@ const navItemClass = ({ isActive }) =>
               </NavLink>
 
               <NavLink to="/repertoire" className={navItemClass}>
-                Répertoire
+                Répertoire téléphonique
               </NavLink>
 
               <NavLink to="/outils" className={navItemClass}>
