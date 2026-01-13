@@ -39,6 +39,9 @@ function AdminPage() {
   // Reset requests
   const [resetRequests, setResetRequests] = useState([]);
 
+  // ✅ Backup state
+  const [isBackingUp, setIsBackingUp] = useState(false);
+
   // ------------------------------------------------------------
   // ✅ FIX GoTrueClient: instance unique "confirm client"
   // ------------------------------------------------------------
@@ -61,6 +64,7 @@ function AdminPage() {
         detectSessionInUrl: false,
       },
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ------------------------------------------------------------
@@ -78,12 +82,10 @@ function AdminPage() {
   const SUPABASE_ANON_KEY =
     getEnv("VITE_SUPABASE_ANON_KEY") || getEnv("REACT_APP_SUPABASE_ANON_KEY") || "";
 
-  // (garde le bloc au cas où tu veux réutiliser SUPABASE_URL/ANON_KEY ailleurs)
   void SUPABASE_URL;
   void SUPABASE_ANON_KEY;
 
   const countRealCanevasInCategory = async (sector, category) => {
-    // Canevas "réels" = title != '-'
     const { count, error } = await supabase
       .from("canevas")
       .select("id", { count: "exact", head: true })
@@ -113,54 +115,88 @@ function AdminPage() {
     return (typed || "").trim().toUpperCase() === "SUPPRIMER";
   };
 
-// ------------------------------------------------------------
-// ✅ Helper: DELETE via PostgREST avec header x-delete-confirm
-// (permet de confirmer côté DB tout en gardant l'auth session)
-// ------------------------------------------------------------
-const postgrestDelete = async ({ table, filters, confirm = false }) => {
-  // session du user connecté (important pour RLS)
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  // ------------------------------------------------------------
+  // ✅ Helper: DELETE via PostgREST avec header x-delete-confirm
+  // ------------------------------------------------------------
+  const postgrestDelete = async ({ table, filters, confirm = false }) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-  const accessToken = session?.access_token;
-  if (!accessToken) {
-    throw { message: "Session introuvable (access_token manquant). Reconnecte-toi." };
-  }
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      throw { message: "Session introuvable (access_token manquant). Reconnecte-toi." };
+    }
 
-  // construit ?col=eq.value&col2=eq.value2 ...
-  const query = Object.entries(filters)
-    .map(([k, v]) => `${encodeURIComponent(k)}=eq.${encodeURIComponent(String(v))}`)
-    .join("&");
+    const query = Object.entries(filters)
+      .map(([k, v]) => `${encodeURIComponent(k)}=eq.${encodeURIComponent(String(v))}`)
+      .join("&");
 
-  const url = `${supabaseUrl}/rest/v1/${table}?${query}`;
+    const url = `${supabaseUrl}/rest/v1/${table}?${query}`;
 
-  const headers = {
-    apikey: supabaseAnonKey,
-    Authorization: `Bearer ${accessToken}`,
+    const headers = {
+      apikey: supabaseAnonKey,
+      Authorization: `Bearer ${accessToken}`,
+    };
+
+    if (confirm) headers["x-delete-confirm"] = "SUPPRIMER";
+
+    const res = await fetch(url, {
+      method: "DELETE",
+      headers,
+    });
+
+    if (!res.ok) {
+      let payload = null;
+      try {
+        payload = await res.json();
+      } catch {
+        payload = { message: res.statusText };
+      }
+      throw payload || { message: "Erreur inconnue" };
+    }
+
+    return true;
   };
 
-  if (confirm) headers["x-delete-confirm"] = "SUPPRIMER";
+  // ------------------------------------------------------------
+  // ✅ BACKUP MANUEL (Edge Function)
+  // ------------------------------------------------------------
+  const handleManualBackup = async () => {
+    const confirmRun = window.confirm(
+      `Lancer un backup manuel pour le secteur "${adminSector}" ?\n\n(Ça crée un snapshot côté Supabase.)`
+    );
+    if (!confirmRun) return;
 
-  const res = await fetch(url, {
-    method: "DELETE",
-    headers,
-  });
-
-  if (!res.ok) {
-    let payload = null;
     try {
-      payload = await res.json();
-    } catch {
-      payload = { message: res.statusText };
+      setIsBackingUp(true);
+
+      // on passe le secteur (si ta function l'utilise)
+      const { data, error } = await supabase.functions.invoke("backup-canevas-admin", {
+        body: { sector: adminSector },
+      });
+
+      if (error) {
+        console.error("backup-canevas-admin error:", error);
+        alert(`❌ Backup échoué.\n${error.message || "Erreur"}`);
+        return;
+      }
+
+      // si la function renvoie un message
+      const msg =
+        data?.message ||
+        data?.status ||
+        "✅ Backup terminé ! (Vérifie ta table/ton storage selon ton implémentation)";
+
+      alert(msg);
+      console.log("Backup result:", data);
+    } catch (e) {
+      console.error("handleManualBackup catch:", e);
+      alert(`❌ Backup échoué.\n${e?.message || "Erreur inconnue"}`);
+    } finally {
+      setIsBackingUp(false);
     }
-    // Ex: { code:'P0001', message:'...' }
-    throw payload || { message: "Erreur inconnue" };
-  }
-
-  return true;
-};
-
+  };
 
   // ------------------------------------------------------------
   // Fetchers
@@ -345,59 +381,57 @@ const postgrestDelete = async ({ table, filters, confirm = false }) => {
     fetchCategories();
   };
 
-const deleteCategory = async (cat) => {
-  const confirmDelete = window.confirm(
-    `⚠️ Supprimer la catégorie "${cat}" dans le secteur "${adminSector}" ?`
-  );
-  if (!confirmDelete) return;
+  const deleteCategory = async (cat) => {
+    const confirmDelete = window.confirm(
+      `⚠️ Supprimer la catégorie "${cat}" dans le secteur "${adminSector}" ?`
+    );
+    if (!confirmDelete) return;
 
-  try {
-    const realCount = await countRealCanevasInCategory(adminSector, cat);
+    try {
+      const realCount = await countRealCanevasInCategory(adminSector, cat);
 
-    // Si rien de "réel", delete normal OK
-    if (realCount === 0) {
-      const { error } = await supabase
-        .from("canevas")
-        .delete()
-        .eq("sector", adminSector)
-        .eq("category", cat);
+      if (realCount === 0) {
+        const { error } = await supabase
+          .from("canevas")
+          .delete()
+          .eq("sector", adminSector)
+          .eq("category", cat);
 
-      if (error) {
-        console.error("deleteCategory error:", error);
-        alert(`❌ Suppression refusée.\n${error.message}`);
+        if (error) {
+          console.error("deleteCategory error:", error);
+          alert(`❌ Suppression refusée.\n${error.message}`);
+          return;
+        }
+
+        fetchCategories();
+        setSelectedCategory("");
+        setSelectedSubCategory("");
+        setSubCategories([]);
+        setCanevasList([]);
         return;
       }
+
+      const ok = requireTypeSUPPRIMER(
+        `⚠️ Cette catégorie contient ${realCount} canevas réels.\n\nTape SUPPRIMER pour confirmer la suppression.`
+      );
+      if (!ok) return;
+
+      await postgrestDelete({
+        table: "canevas",
+        filters: { sector: adminSector, category: cat },
+        confirm: true,
+      });
 
       fetchCategories();
       setSelectedCategory("");
       setSelectedSubCategory("");
       setSubCategories([]);
       setCanevasList([]);
-      return;
+    } catch (e) {
+      console.error("deleteCategory catch:", e);
+      alert(`❌ Erreur lors de la suppression.\n${e?.message || "Erreur"}`);
     }
-
-    // Sinon: confirmation + delete avec header
-    const ok = requireTypeSUPPRIMER(
-      `⚠️ Cette catégorie contient ${realCount} canevas réels.\n\nTape SUPPRIMER pour confirmer la suppression.`
-    );
-    if (!ok) return;
-
-    await postgrestDelete({
-      table: "canevas",
-      filters: { sector: adminSector, category: cat },
-      confirm: true,
-    });
-
-    fetchCategories();
-    setSelectedCategory("");
-    setSelectedSubCategory("");
-    setSubCategories([]);
-    setCanevasList([]);
-  } catch (e) {
-    console.error("deleteCategory catch:", e);
-    alert(`❌ Erreur lors de la suppression.\n${e?.message || "Erreur"}`);
-  }
-};
+  };
 
   const addSubCategory = async () => {
     if (!selectedCategory || !newSubCategory.trim()) return;
@@ -422,54 +456,54 @@ const deleteCategory = async (cat) => {
     fetchSubCategories();
   };
 
-const deleteSubCategory = async (sub) => {
-  const confirmDelete = window.confirm(
-    `⚠️ Supprimer la sous-catégorie "${sub}" dans "${selectedCategory}" (${adminSector}) ?`
-  );
-  if (!confirmDelete) return;
+  const deleteSubCategory = async (sub) => {
+    const confirmDelete = window.confirm(
+      `⚠️ Supprimer la sous-catégorie "${sub}" dans "${selectedCategory}" (${adminSector}) ?`
+    );
+    if (!confirmDelete) return;
 
-  try {
-    const realCount = await countRealCanevasInSubCategory(adminSector, selectedCategory, sub);
+    try {
+      const realCount = await countRealCanevasInSubCategory(adminSector, selectedCategory, sub);
 
-    if (realCount === 0) {
-      const { error } = await supabase
-        .from("canevas")
-        .delete()
-        .eq("sector", adminSector)
-        .eq("category", selectedCategory)
-        .eq("subCategory", sub);
+      if (realCount === 0) {
+        const { error } = await supabase
+          .from("canevas")
+          .delete()
+          .eq("sector", adminSector)
+          .eq("category", selectedCategory)
+          .eq("subCategory", sub);
 
-      if (error) {
-        console.error("deleteSubCategory error:", error);
-        alert(`❌ Suppression refusée.\n${error.message}`);
+        if (error) {
+          console.error("deleteSubCategory error:", error);
+          alert(`❌ Suppression refusée.\n${error.message}`);
+          return;
+        }
+
+        fetchSubCategories();
+        setSelectedSubCategory("");
+        setCanevasList([]);
         return;
       }
+
+      const ok = requireTypeSUPPRIMER(
+        `⚠️ Cette sous-catégorie contient ${realCount} canevas réels.\n\nTape SUPPRIMER pour confirmer la suppression.`
+      );
+      if (!ok) return;
+
+      await postgrestDelete({
+        table: "canevas",
+        filters: { sector: adminSector, category: selectedCategory, subCategory: sub },
+        confirm: true,
+      });
 
       fetchSubCategories();
       setSelectedSubCategory("");
       setCanevasList([]);
-      return;
+    } catch (e) {
+      console.error("deleteSubCategory catch:", e);
+      alert(`❌ Erreur lors de la suppression.\n${e?.message || "Erreur"}`);
     }
-
-    const ok = requireTypeSUPPRIMER(
-      `⚠️ Cette sous-catégorie contient ${realCount} canevas réels.\n\nTape SUPPRIMER pour confirmer la suppression.`
-    );
-    if (!ok) return;
-
-    await postgrestDelete({
-      table: "canevas",
-      filters: { sector: adminSector, category: selectedCategory, subCategory: sub },
-      confirm: true,
-    });
-
-    fetchSubCategories();
-    setSelectedSubCategory("");
-    setCanevasList([]);
-  } catch (e) {
-    console.error("deleteSubCategory catch:", e);
-    alert(`❌ Erreur lors de la suppression.\n${e?.message || "Erreur"}`);
-  }
-};
+  };
 
   const addCanevas = async () => {
     if (!selectedCategory || !selectedSubCategory || !newCanevasTitle.trim()) return;
@@ -495,52 +529,50 @@ const deleteSubCategory = async (sub) => {
     fetchCanevas();
   };
 
-const deleteCanevas = async (id) => {
-  const confirmDelete = window.confirm("⚠️ Supprimer ce canevas ?");
-  if (!confirmDelete) return;
+  const deleteCanevas = async (id) => {
+    const confirmDelete = window.confirm("⚠️ Supprimer ce canevas ?");
+    if (!confirmDelete) return;
 
-  // 1) tente sans confirm header
-  const { error } = await supabase
-    .from("canevas")
-    .delete()
-    .eq("sector", adminSector)
-    .eq("id", id);
+    const { error } = await supabase
+      .from("canevas")
+      .delete()
+      .eq("sector", adminSector)
+      .eq("id", id);
 
-  if (!error) {
-    fetchCanevas();
-    return;
-  }
-
-  console.error("deleteCanevas error:", error);
-
-  // 2) si bloqué par le trigger (P0001), on propose SUPPRIMER puis on retry avec header
-  const msg = error?.message || "";
-  const code = error?.code || "";
-
-  if (code === "P0001" || msg.toLowerCase().includes("tapez supprimer")) {
-    const ok = requireTypeSUPPRIMER(
-      `⚠️ Suppression protégée par sécurité.\n\n${msg}\n\nTape SUPPRIMER pour confirmer.`
-    );
-    if (!ok) return;
-
-    try {
-      await postgrestDelete({
-        table: "canevas",
-        filters: { sector: adminSector, id },
-        confirm: true,
-      });
-
+    if (!error) {
       fetchCanevas();
       return;
-    } catch (e) {
-      console.error("deleteCanevas confirm error:", e);
-      alert(`❌ Suppression refusée.\n${e?.message || "Erreur"}`);
-      return;
     }
-  }
 
-  alert(`❌ Suppression refusée.\n${msg}`);
-};
+    console.error("deleteCanevas error:", error);
+
+    const msg = error?.message || "";
+    const code = error?.code || "";
+
+    if (code === "P0001" || msg.toLowerCase().includes("tapez supprimer")) {
+      const ok = requireTypeSUPPRIMER(
+        `⚠️ Suppression protégée par sécurité.\n\n${msg}\n\nTape SUPPRIMER pour confirmer.`
+      );
+      if (!ok) return;
+
+      try {
+        await postgrestDelete({
+          table: "canevas",
+          filters: { sector: adminSector, id },
+          confirm: true,
+        });
+
+        fetchCanevas();
+        return;
+      } catch (e) {
+        console.error("deleteCanevas confirm error:", e);
+        alert(`❌ Suppression refusée.\n${e?.message || "Erreur"}`);
+        return;
+      }
+    }
+
+    alert(`❌ Suppression refusée.\n${msg}`);
+  };
 
   const startEditing = (canevas) => {
     setEditingCanevasId(canevas.id);
@@ -685,8 +717,7 @@ const deleteCanevas = async (id) => {
   };
 
   // ------------------------------------------------------------
-  // ✅ UI: Header moderne + boutons sections en "chips" + panneaux style cards
-  // (AUCUNE logique métier changée)
+  // ✅ UI helpers
   // ------------------------------------------------------------
   const sectionBtnBase =
     "flex-1 rounded-lg px-4 py-3 font-semibold transition focus:outline-none focus:ring-2 focus:ring-blue-300";
@@ -700,7 +731,7 @@ const deleteCanevas = async (id) => {
       transition={{ duration: 0.22 }}
       className="p-6 bg-white"
     >
-      {/* ✅ Header modernisé (même vibe que tes autres pages) */}
+      {/* Header */}
       <div className="mb-6 rounded-xl bg-gradient-to-r from-blue-700 to-blue-900 text-white p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
@@ -724,7 +755,7 @@ const deleteCanevas = async (id) => {
         </div>
       </div>
 
-      {/* ✅ Boutons sections (plus clean, mieux séparé) */}
+      {/* Boutons sections */}
       <div className="flex flex-col lg:flex-row gap-3 mb-6">
         <button
           onClick={() => setShowUserManagement(!showUserManagement)}
@@ -913,6 +944,29 @@ const deleteCanevas = async (id) => {
                   <option value="particulier">Particulier</option>
                   <option value="entreprise">Entreprise</option>
                 </select>
+              </div>
+            </div>
+
+            {/* ✅ BARRE ACTIONS (Backup) */}
+            <div className="bg-white border rounded-xl p-4 mb-5">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Actions</h3>
+                  <p className="text-sm text-gray-600">
+                    Backup manuel du contenu (selon la Edge Function).
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleManualBackup}
+                  disabled={isBackingUp}
+                  className={`px-5 py-3 rounded-lg font-semibold text-white transition ${
+                    isBackingUp ? "bg-purple-400 cursor-not-allowed" : "bg-purple-700 hover:bg-purple-800"
+                  }`}
+                  title="Lancer un backup manuel"
+                >
+                  {isBackingUp ? "⏳ Backup en cours..." : "💾 Backup manuel"}
+                </button>
               </div>
             </div>
 
