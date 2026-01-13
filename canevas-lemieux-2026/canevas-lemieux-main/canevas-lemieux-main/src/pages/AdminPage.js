@@ -164,7 +164,7 @@ function AdminPage() {
   // ------------------------------------------------------------
   const handleManualBackup = async () => {
     const confirmRun = window.confirm(
-      `Lancer un backup manuel pour le secteur "${adminSector}" ?\n\n(Ça crée un snapshot côté Supabase.)`
+      `Lancer une sauvegarde manuelle pour le secteur "${adminSector}" ?\n\nRecommandé si vous souhaitez effectuer plusieurs modifications aux canevas`
     );
     if (!confirmRun) return;
 
@@ -178,7 +178,7 @@ function AdminPage() {
 
       if (error) {
         console.error("backup-canevas-admin error:", error);
-        alert(`❌ Backup échoué.\n${error.message || "Erreur"}`);
+        alert(`❌ Sauvegarde échouée.\n${error.message || "Erreur"}`);
         return;
       }
 
@@ -186,13 +186,13 @@ function AdminPage() {
       const msg =
         data?.message ||
         data?.status ||
-        "✅ Backup terminé ! (Vérifie ta table/ton storage selon ton implémentation)";
+        "✅ Sauvegarde terminée ! ";
 
       alert(msg);
       console.log("Backup result:", data);
     } catch (e) {
       console.error("handleManualBackup catch:", e);
-      alert(`❌ Backup échoué.\n${e?.message || "Erreur inconnue"}`);
+      alert(`❌ Sauvegarde échouée.\n${e?.message || "Erreur inconnue"}`);
     } finally {
       setIsBackingUp(false);
     }
@@ -961,11 +961,11 @@ function AdminPage() {
                   onClick={handleManualBackup}
                   disabled={isBackingUp}
                   className={`px-5 py-3 rounded-lg font-semibold text-white transition ${
-                    isBackingUp ? "bg-purple-400 cursor-not-allowed" : "bg-purple-700 hover:bg-purple-800"
+                    isBackingUp ? "bg-blue-400 cursor-not-allowed" : "bg-blue-700 hover:bg-blue-800"
                   }`}
-                  title="Lancer un backup manuel"
+                  title="Lancer une sauvegarde manuelle"
                 >
-                  {isBackingUp ? "⏳ Backup en cours..." : "💾 Backup manuel"}
+                  {isBackingUp ? "⏳ Sauvegarde en cours..." : "💾 Sauvegarde manuelle"}
                 </button>
               </div>
             </div>
