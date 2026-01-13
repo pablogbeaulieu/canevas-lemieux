@@ -953,7 +953,7 @@ function AdminPage() {
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">Actions</h3>
                   <p className="text-sm text-gray-600">
-                    Backup manuel du contenu (selon la Edge Function).
+                    Faire une savegarde manuelle des canevas actuels.
                   </p>
                 </div>
 
