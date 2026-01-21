@@ -1,5 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { supabase } from "../api"; // 📌 Connexion à Supabase
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+
+function normalizeText(s = "") {
+  return String(s)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // enlève accents
+    .toLowerCase()
+    .trim();
+}
 
 function Repertoire() {
   const [contacts, setContacts] = useState([]);
@@ -21,6 +30,13 @@ function Repertoire() {
   const [editedCategorie, setEditedCategorie] = useState("");
   const [editedTelephone, setEditedTelephone] = useState("");
   const [editedCourriel, setEditedCourriel] = useState("");
+
+  // ✅ Recherche (style Canevas)
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef(null);
+
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     fetchContacts();
@@ -65,11 +81,13 @@ function Repertoire() {
     }
   };
 
-  const groupedContacts = contacts.reduce((acc, contact) => {
-    if (!acc[contact.assureur]) acc[contact.assureur] = [];
-    acc[contact.assureur].push(contact);
-    return acc;
-  }, {});
+  const groupedContacts = useMemo(() => {
+    return contacts.reduce((acc, contact) => {
+      if (!acc[contact.assureur]) acc[contact.assureur] = [];
+      acc[contact.assureur].push(contact);
+      return acc;
+    }, {});
+  }, [contacts]);
 
   const addContact = async () => {
     const assureurFinal = isNewAssureur ? newAssureur.trim() : newAssureur;
@@ -156,19 +174,82 @@ function Repertoire() {
     }
   };
 
+  // ✅ Auto focus quand search open
+  useEffect(() => {
+    if (!searchOpen) return;
+    const t = setTimeout(() => {
+      searchInputRef.current?.focus?.();
+    }, 50);
+    return () => clearTimeout(t);
+  }, [searchOpen]);
+
+  // ✅ Fermer recherche (ESC)
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        if (searchOpen) {
+          setSearchQuery("");
+          setSearchOpen(false);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [searchOpen]);
+
+  // ✅ Recherche: filtre assureurs + résultats groupés
+  const normalizedQuery = useMemo(() => normalizeText(searchQuery), [searchQuery]);
+  const searchActive = searchOpen && normalizedQuery.length > 0;
+
+  const assureurMatches = useMemo(() => {
+    if (!searchActive) return [];
+    const q = normalizedQuery;
+
+    const matched = (assureurs || []).filter((a) => normalizeText(a).includes(q));
+
+    // Tri alpha
+    matched.sort((a, b) => String(a).localeCompare(String(b), "fr", { sensitivity: "base" }));
+
+    // Limite raisonnable
+    return matched.slice(0, 12);
+  }, [searchActive, normalizedQuery, assureurs]);
+
+  const searchWrapVariants = {
+    closed: prefersReducedMotion ? { width: 0, opacity: 1 } : { width: 0, opacity: 0 },
+    open: prefersReducedMotion
+      ? { width: "260px", opacity: 1 }
+      : { width: "260px", opacity: 1, transition: { duration: 0.18, ease: "easeOut" } },
+  };
+
+  const SearchIcon = ({ className = "" }) => (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <path
+        d="M16.5 16.5 21 21"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+
   return (
     <div className="p-6">
-      {/* ✅ Header modernisé */}
+      {/* ✅ Header modernisé + Recherche */}
       <div className="mb-6 rounded-xl bg-gradient-to-r from-blue-700 to-blue-900 text-white p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold"> Répertoire téléphonique</h1>
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold">Répertoire téléphonique</h1>
             <p className="text-white/80 text-sm mt-1">
               Trouve rapidement les contacts par assureur.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 justify-end">
             <span className="text-xs bg-white/15 px-3 py-1 rounded-full">
               {assureurs.length} assureurs
             </span>
@@ -176,7 +257,44 @@ function Repertoire() {
               {contacts.length} contacts
             </span>
 
-            {userRole === "admin" && (
+            {/* ✅ Zone loupe + input */}
+            <div
+              className="flex items-center gap-2"
+              onMouseEnter={() => setSearchOpen(true)}
+              onMouseLeave={() => {
+                if (!searchQuery.trim()) setSearchOpen(false);
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchOpen(true);
+                  setTimeout(() => searchInputRef.current?.focus?.(), 0);
+                }}
+                title="Rechercher un assureur"
+                className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/15 hover:bg-white/20 transition"
+              >
+                <SearchIcon className="w-5 h-5 text-white" />
+              </button>
+
+              <motion.div
+                variants={searchWrapVariants}
+                initial="closed"
+                animate={searchOpen ? "open" : "closed"}
+                className="overflow-hidden"
+              >
+                <input
+                  ref={searchInputRef}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Rechercher un assureur"
+                  className="w-[260px] bg-white/15 placeholder-white/60 text-white border border-white/15 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+                  onFocus={() => setSearchOpen(true)}
+                />
+              </motion.div>
+            </div>
+
+            {userRole === "admin" && !searchActive && (
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
                 className="ml-1 bg-white text-blue-800 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-white/90 transition"
@@ -186,10 +304,24 @@ function Repertoire() {
             )}
           </div>
         </div>
+
+        <AnimatePresence>
+          {searchActive && (
+            <motion.div
+              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.14 }}
+              className="mt-3 text-xs text-white/75"
+            >
+              Résultats pour <b className="text-white">{searchQuery.trim()}</b> — (ESC pour fermer)
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* ✅ Formulaire d'ajout (admins seulement) */}
-      {userRole === "admin" && (
+      {/* ✅ Formulaire d'ajout (admins seulement) — caché en mode recherche */}
+      {!searchActive && userRole === "admin" && (
         <div className="mb-6">
           <div
             className={`transition-all duration-500 ease-in-out overflow-hidden ${
@@ -280,134 +412,209 @@ function Repertoire() {
         </div>
       )}
 
-      {loading ? (
-        <p>Chargement des contacts...</p>
-      ) : (
-        assureurs.map((assureur) => (
-          <div key={assureur} className="mb-4">
-            {/* ✅ En-tête assureur modernisé */}
-            <div
-              className="flex justify-between items-center bg-white p-4 cursor-pointer hover:bg-gray-50 transition-all duration-200 rounded-xl border shadow-sm"
-              onClick={() => setSelectedAssureur(selectedAssureur === assureur ? null : assureur)}
-            >
-              <div className="flex items-center gap-3">
-                <h2 className="text-lg sm:text-xl font-semibold">{assureur}</h2>
-
-                {userRole === "admin" && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteAssureur(assureur);
-                    }}
-                    className="text-red-600 hover:text-red-800 text-sm"
-                    title="Supprimer l’assureur"
-                    type="button"
-                  >
-                    Supprimer
-                  </button>
-                )}
-              </div>
-
-              <span
-                className={`transform transition-transform duration-200 ${
-                  selectedAssureur === assureur ? "rotate-180" : "rotate-0"
-                }`}
+      {/* ========================= */}
+      {/* ✅ MODE RECHERCHE */}
+      {/* ========================= */}
+      <AnimatePresence mode="wait">
+        {searchActive ? (
+          <motion.div
+            key="searchMode"
+            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.14 }}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xl font-semibold">Résultats</h2>
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setSearchOpen(false);
+                }}
+                className="text-sm border rounded-lg px-3 py-2 hover:bg-gray-50 transition font-semibold"
+                type="button"
               >
-                🔽
-              </span>
+                Effacer
+              </button>
             </div>
 
-            {/* ✅ Liste contacts avec transition */}
-            <div
-              className={`transition-all duration-500 ease-in-out overflow-hidden ${
-                selectedAssureur === assureur
-                  ? "max-h-[1200px] opacity-100 scale-100 mt-2"
-                  : "max-h-0 opacity-0 scale-95"
-              }`}
-            >
-              <div className="bg-white border rounded-xl shadow-sm">
-                <ul className="divide-y">
-                  {groupedContacts[assureur]?.map((contact) => (
-                    <li
-                      key={contact.id}
-                      className="p-3 transition-all duration-200 hover:bg-gray-50"
-                    >
-                      {editingId === contact.id ? (
-                        <div className="space-y-2">
-                          <input
-                            value={editedCategorie}
-                            onChange={(e) => setEditedCategorie(e.target.value)}
-                            className="p-2 border rounded w-full"
-                          />
-                          <input
-                            value={editedTelephone}
-                            onChange={(e) => setEditedTelephone(e.target.value)}
-                            className="p-2 border rounded w-full"
-                          />
-                          <input
-                            value={editedCourriel}
-                            onChange={(e) => setEditedCourriel(e.target.value)}
-                            className="p-2 border rounded w-full"
-                          />
-
-                          <div className="flex gap-2 mt-1">
-                            <button
-                              onClick={saveEdits}
-                              className="bg-emerald-600 text-white px-3 py-2 rounded text-sm hover:bg-emerald-700"
-                              type="button"
-                            >
-                              💾 Enregistrer
-                            </button>
-                            <button
-                              onClick={cancelEditing}
-                              className="bg-gray-500 text-white px-3 py-2 rounded text-sm hover:bg-gray-600"
-                              type="button"
-                            >
-                              ✖️ Annuler
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                          <div className="text-sm sm:text-base">
-                            <div className="font-semibold">
-                              📌 {contact.categorie}
-                            </div>
-                            <div className="text-gray-700">
-                              📞 {contact.telephone}{" "}
-                              <span className="mx-2 text-gray-300">|</span>
-                              ✉️ {contact.courriel}
-                            </div>
-                          </div>
-
-                          {userRole === "admin" && (
-                            <div className="flex gap-3">
-                              <button
-                                onClick={() => startEditing(contact)}
-                                className="text-blue-700 hover:text-blue-900 text-sm font-medium"
-                                type="button"
-                              >
-                                Modifier
-                              </button>
-                              <button
-                                onClick={() => deleteContact(contact.id)}
-                                className="text-red-600 hover:text-red-800 text-sm font-medium"
-                                type="button"
-                              >
-                                Supprimer
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+            {assureurMatches.length === 0 ? (
+              <div className="p-4 border rounded-xl bg-gray-50 text-gray-700">
+                Aucun assureur trouvé pour “<b>{searchQuery.trim()}</b>”.
               </div>
-            </div>
-          </div>
-        ))
-      )}
+            ) : (
+              <div className="space-y-3">
+                {assureurMatches.map((assureur) => (
+                  <div key={assureur} className="border rounded-xl bg-white shadow-sm">
+                    <div className="px-4 py-3 border-b bg-gray-50 rounded-t-xl flex items-center justify-between">
+                      <div className="font-semibold text-lg">{assureur}</div>
+                      <div className="text-xs text-gray-500">
+                        {(groupedContacts[assureur] || []).length} contact(s)
+                      </div>
+                    </div>
+
+                    <ul className="divide-y">
+                      {(groupedContacts[assureur] || []).map((contact) => (
+                        <li key={contact.id} className="p-3 hover:bg-gray-50 transition">
+                          <div className="font-semibold">📌 {contact.categorie}</div>
+                          <div className="text-gray-700 text-sm">
+                            📞 {contact.telephone}
+                            <span className="mx-2 text-gray-300">|</span>
+                            ✉️ {contact.courriel}
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="normalMode"
+            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.14 }}
+          >
+            {loading ? (
+              <p>Chargement des contacts...</p>
+            ) : (
+              assureurs.map((assureur) => (
+                <div key={assureur} className="mb-4">
+                  {/* ✅ En-tête assureur modernisé */}
+                  <div
+                    className="flex justify-between items-center bg-white p-4 cursor-pointer hover:bg-gray-50 transition-all duration-200 rounded-xl border shadow-sm"
+                    onClick={() =>
+                      setSelectedAssureur(selectedAssureur === assureur ? null : assureur)
+                    }
+                  >
+                    <div className="flex items-center gap-3">
+                      <h2 className="text-lg sm:text-xl font-semibold">{assureur}</h2>
+
+                      {userRole === "admin" && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteAssureur(assureur);
+                          }}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                          title="Supprimer l’assureur"
+                          type="button"
+                        >
+                          Supprimer
+                        </button>
+                      )}
+                    </div>
+
+                    {/* ✅ Remplace la flèche par un + / – moderne */}
+                    <div
+                      className={[
+                        "w-8 h-8 rounded-lg border border-gray-200",
+                        "flex items-center justify-center",
+                        "text-gray-500 font-semibold",
+                        "transition",
+                        "hover:bg-gray-50",
+                      ].join(" ")}
+                      aria-hidden="true"
+                    >
+                      {selectedAssureur === assureur ? "–" : "+"}
+                    </div>
+                  </div>
+
+                  {/* ✅ Liste contacts avec transition */}
+                  <div
+                    className={`transition-all duration-500 ease-in-out overflow-hidden ${
+                      selectedAssureur === assureur
+                        ? "max-h-[1200px] opacity-100 scale-100 mt-2"
+                        : "max-h-0 opacity-0 scale-95"
+                    }`}
+                  >
+                    <div className="bg-white border rounded-xl shadow-sm">
+                      <ul className="divide-y">
+                        {groupedContacts[assureur]?.map((contact) => (
+                          <li
+                            key={contact.id}
+                            className="p-3 transition-all duration-200 hover:bg-gray-50"
+                          >
+                            {editingId === contact.id ? (
+                              <div className="space-y-2">
+                                <input
+                                  value={editedCategorie}
+                                  onChange={(e) => setEditedCategorie(e.target.value)}
+                                  className="p-2 border rounded w-full"
+                                />
+                                <input
+                                  value={editedTelephone}
+                                  onChange={(e) => setEditedTelephone(e.target.value)}
+                                  className="p-2 border rounded w-full"
+                                />
+                                <input
+                                  value={editedCourriel}
+                                  onChange={(e) => setEditedCourriel(e.target.value)}
+                                  className="p-2 border rounded w-full"
+                                />
+
+                                <div className="flex gap-2 mt-1">
+                                  <button
+                                    onClick={saveEdits}
+                                    className="bg-emerald-600 text-white px-3 py-2 rounded text-sm hover:bg-emerald-700"
+                                    type="button"
+                                  >
+                                    💾 Enregistrer
+                                  </button>
+                                  <button
+                                    onClick={cancelEditing}
+                                    className="bg-gray-500 text-white px-3 py-2 rounded text-sm hover:bg-gray-600"
+                                    type="button"
+                                  >
+                                    ✖️ Annuler
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                <div className="text-sm sm:text-base">
+                                  <div className="font-semibold">📌 {contact.categorie}</div>
+                                  <div className="text-gray-700">
+                                    📞 {contact.telephone}
+                                    <span className="mx-2 text-gray-300">|</span>
+                                    ✉️ {contact.courriel}
+                                  </div>
+                                </div>
+
+                                {userRole === "admin" && (
+                                  <div className="flex gap-3">
+                                    <button
+                                      onClick={() => startEditing(contact)}
+                                      className="text-blue-700 hover:text-blue-900 text-sm font-medium"
+                                      type="button"
+                                    >
+                                      Modifier
+                                    </button>
+                                    <button
+                                      onClick={() => deleteContact(contact.id)}
+                                      className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                      type="button"
+                                    >
+                                      Supprimer
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
