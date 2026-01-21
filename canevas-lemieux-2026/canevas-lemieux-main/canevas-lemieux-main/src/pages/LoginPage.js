@@ -5,8 +5,9 @@ import { useNavigate } from "react-router-dom";
 function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
+  const [userRole, setUserRole] = useState(null);
+void userRole; // pour éviter le warning "assigned but never used"
 
   const fetchUserRole = async (userId) => {
     const { data, error } = await supabase

@@ -62,6 +62,7 @@ export default function OutilsPage() {
   };
 
   // ✅ Auto-recherche dès qu'on a 3 chars valides (avec debounce)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const fsa = normalizeFSA(postalInput);
 
@@ -262,6 +263,7 @@ export default function OutilsPage() {
   };
 
   // ✅ Auto-décodage quand on a EXACTEMENT 17 chars valides (avec debounce)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const vin = normalizeVin(vinInput);
 
@@ -610,8 +612,14 @@ export default function OutilsPage() {
                       <DetailRow label="Classe de carrosserie" value={vinResult.bodyClass} />
                       <DetailRow label="Portes" value={vinResult.doors} />
 
-                      <DetailRow label="DriveType (AWD/FWD/RWD/4WD/2WD)" value={vinResult.driveType} />
-                      <DetailRow label="Carburant (principal)" value={vinResult.fuelTypePrimary} />
+                      <DetailRow
+                        label="DriveType (AWD/FWD/RWD/4WD/2WD)"
+                        value={vinResult.driveType}
+                      />
+                      <DetailRow
+                        label="Carburant (principal)"
+                        value={vinResult.fuelTypePrimary}
+                      />
                       <DetailRow
                         label="Moteur"
                         value={[
@@ -622,8 +630,14 @@ export default function OutilsPage() {
                           .join(" • ")}
                       />
 
-                      <DetailRow label="Transmission (style)" value={vinResult.transmissionStyle} />
-                      <DetailRow label="Transmission (vitesses)" value={vinResult.transmissionSpeeds} />
+                      <DetailRow
+                        label="Transmission (style)"
+                        value={vinResult.transmissionStyle}
+                      />
+                      <DetailRow
+                        label="Transmission (vitesses)"
+                        value={vinResult.transmissionSpeeds}
+                      />
 
                       <DetailRow label="Usine (pays)" value={vinResult.plantCountry} />
                       <DetailRow label="Usine (ville)" value={vinResult.plantCity} />
