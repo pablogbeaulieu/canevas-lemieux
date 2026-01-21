@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase, supabaseUrl, supabaseAnonKey } from "../api";
 import { AnimatePresence, motion } from "framer-motion";
-import { createClient } from "@supabase/supabase-js";
 
 function AdminPage() {
   const [categories, setCategories] = useState([]);
@@ -43,73 +42,8 @@ function AdminPage() {
   const [isBackingUp, setIsBackingUp] = useState(false);
 
   // ------------------------------------------------------------
-  // ✅ FIX GoTrueClient: instance unique "confirm client"
-  // ------------------------------------------------------------
-  const confirmSupabase = useMemo(() => {
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.warn("Missing Supabase env vars for confirm client.");
-      return null;
-    }
-
-    return createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          "x-delete-confirm": "SUPPRIMER",
-        },
-      },
-      auth: {
-        storageKey: "sb-confirm-delete-client",
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ------------------------------------------------------------
   // Helpers “SUPPRIMER”
   // ------------------------------------------------------------
-  const getEnv = (key) => {
-    // Vite
-    if (typeof import.meta !== "undefined" && import.meta?.env?.[key]) return import.meta.env[key];
-    // CRA
-    if (typeof process !== "undefined" && process?.env?.[key]) return process.env[key];
-    return undefined;
-  };
-
-  const SUPABASE_URL = getEnv("VITE_SUPABASE_URL") || getEnv("REACT_APP_SUPABASE_URL") || "";
-  const SUPABASE_ANON_KEY =
-    getEnv("VITE_SUPABASE_ANON_KEY") || getEnv("REACT_APP_SUPABASE_ANON_KEY") || "";
-
-  void SUPABASE_URL;
-  void SUPABASE_ANON_KEY;
-
-  const countRealCanevasInCategory = async (sector, category) => {
-    const { count, error } = await supabase
-      .from("canevas")
-      .select("id", { count: "exact", head: true })
-      .eq("sector", sector)
-      .eq("category", category)
-      .neq("title", "-");
-
-    if (error) throw error;
-    return count || 0;
-  };
-
-  const countRealCanevasInSubCategory = async (sector, category, subCategory) => {
-    const { count, error } = await supabase
-      .from("canevas")
-      .select("id", { count: "exact", head: true })
-      .eq("sector", sector)
-      .eq("category", category)
-      .eq("subCategory", subCategory)
-      .neq("title", "-");
-
-    if (error) throw error;
-    return count || 0;
-  };
-
   const requireTypeSUPPRIMER = (message) => {
     const typed = window.prompt(message);
     return (typed || "").trim().toUpperCase() === "SUPPRIMER";
@@ -125,7 +59,7 @@ function AdminPage() {
 
     const accessToken = session?.access_token;
     if (!accessToken) {
-      throw { message: "Session introuvable (access_token manquant). Reconnecte-toi." };
+      throw new Error("Session introuvable (access_token manquant). Reconnecte-toi.");
     }
 
     const query = Object.entries(filters)
@@ -153,10 +87,35 @@ function AdminPage() {
       } catch {
         payload = { message: res.statusText };
       }
-      throw payload || { message: "Erreur inconnue" };
+      throw new Error(payload?.message || "Erreur inconnue");
     }
 
     return true;
+  };
+
+  const countRealCanevasInCategory = async (sector, category) => {
+    const { count, error } = await supabase
+      .from("canevas")
+      .select("id", { count: "exact", head: true })
+      .eq("sector", sector)
+      .eq("category", category)
+      .neq("title", "-");
+
+    if (error) throw error;
+    return count || 0;
+  };
+
+  const countRealCanevasInSubCategory = async (sector, category, subCategory) => {
+    const { count, error } = await supabase
+      .from("canevas")
+      .select("id", { count: "exact", head: true })
+      .eq("sector", sector)
+      .eq("category", category)
+      .eq("subCategory", subCategory)
+      .neq("title", "-");
+
+    if (error) throw error;
+    return count || 0;
   };
 
   // ------------------------------------------------------------
@@ -171,7 +130,6 @@ function AdminPage() {
     try {
       setIsBackingUp(true);
 
-      // on passe le secteur (si ta function l'utilise)
       const { data, error } = await supabase.functions.invoke("backup-canevas-admin", {
         body: { sector: adminSector },
       });
@@ -182,12 +140,7 @@ function AdminPage() {
         return;
       }
 
-      // si la function renvoie un message
-      const msg =
-        data?.message ||
-        data?.status ||
-        "✅ Sauvegarde terminée ! ";
-
+      const msg = data?.message || data?.status || "✅ Sauvegarde terminée !";
       alert(msg);
       console.log("Backup result:", data);
     } catch (e) {
@@ -229,7 +182,10 @@ function AdminPage() {
   };
 
   const fetchNews = async () => {
-    const { data, error } = await supabase.from("news").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("news")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if (error) {
       console.error(error);
@@ -253,9 +209,11 @@ function AdminPage() {
     setResetRequests(data || []);
   };
 
-  // Catégories filtrées par secteur
   const fetchCategories = async () => {
-    const { data, error } = await supabase.from("canevas").select("category").eq("sector", adminSector);
+    const { data, error } = await supabase
+      .from("canevas")
+      .select("category")
+      .eq("sector", adminSector);
 
     if (error) {
       console.error(error);
@@ -267,7 +225,6 @@ function AdminPage() {
     setCategories(unique);
   };
 
-  // Sous-catégories filtrées par secteur + catégorie
   const fetchSubCategories = async () => {
     if (!selectedCategory) return;
 
@@ -287,7 +244,6 @@ function AdminPage() {
     setSubCategories(unique);
   };
 
-  // Canevas filtrés par secteur + catégorie + sous-catégorie
   const fetchCanevas = async () => {
     if (!selectedCategory || !selectedSubCategory) return;
 
@@ -653,7 +609,9 @@ function AdminPage() {
   };
 
   const deleteUser = async (userId) => {
-    const confirmDelete = window.confirm("⚠️ Supprimer COMPLETEMENT ce compte (Auth + base de données) ?");
+    const confirmDelete = window.confirm(
+      "⚠️ Supprimer COMPLETEMENT ce compte (Auth + base de données) ?"
+    );
     if (!confirmDelete) return;
 
     const { data, error } = await supabase.functions.invoke("delete-user", {
@@ -893,7 +851,10 @@ function AdminPage() {
               ) : (
                 <ul className="divide-y bg-yellow-50 border border-yellow-300 rounded-xl overflow-hidden">
                   {resetRequests.map((req) => (
-                    <li key={req.id} className="py-3 px-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                    <li
+                      key={req.id}
+                      className="py-3 px-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3"
+                    >
                       <div>
                         <p className="font-medium text-gray-900">{req.email}</p>
                         <p className="text-xs text-gray-600">
@@ -952,9 +913,7 @@ function AdminPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">Actions</h3>
-                  <p className="text-sm text-gray-600">
-                    Faire une savegarde manuelle des canevas actuels.
-                  </p>
+                  <p className="text-sm text-gray-600">Faire une sauvegarde manuelle des canevas actuels.</p>
                 </div>
 
                 <button
@@ -1252,7 +1211,9 @@ function AdminPage() {
                     alert("Titre et contenu requis.");
                     return;
                   }
-                  const { error } = await supabase.from("news").insert([{ title: newNewsTitle, content: newNewsContent }]);
+                  const { error } = await supabase
+                    .from("news")
+                    .insert([{ title: newNewsTitle, content: newNewsContent }]);
                   if (error) {
                     console.error(error);
                     alert("❌ Erreur");
@@ -1274,7 +1235,10 @@ function AdminPage() {
             ) : (
               <ul className="space-y-3">
                 {newsList.map((news) => (
-                  <li key={news.id} className="bg-white border rounded-xl p-4 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                  <li
+                    key={news.id}
+                    className="bg-white border rounded-xl p-4 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3"
+                  >
                     <div>
                       <p className="font-bold text-gray-900">{news.title}</p>
                       <p className="text-gray-800 whitespace-pre-wrap">{news.content}</p>
