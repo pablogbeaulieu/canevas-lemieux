@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "../api";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -14,55 +14,57 @@ export default function OutilsPage() {
   const debounceRef = useRef(null);
   const lastQueryRef = useRef("");
 
-  const normalizeFSA = (value) => {
+  const normalizeFSA = useCallback((value) => {
     const v = (value || "").toUpperCase().trim().replace(/\s+/g, "");
     return v.slice(0, 3);
-  };
+  }, []);
 
-  const buildMapsUrl = (origin, destination) => {
+  const buildMapsUrl = useCallback((origin, destination) => {
     const o = encodeURIComponent(origin || "");
     const d = encodeURIComponent(destination || "");
     return `https://www.google.com/maps/dir/?api=1&origin=${o}&destination=${d}`;
-  };
+  }, []);
 
-  const originForMaps = () => {
+  const originForMaps = useCallback(() => {
     const raw = (postalInput || "").trim().toUpperCase();
     // Si le user a tapé le code complet, on l'utilise (sinon FSA)
     return raw.replace(/\s+/g, "").length >= 6 ? raw : normalizeFSA(raw);
-  };
+  }, [postalInput, normalizeFSA]);
 
-  const searchFSA = async (forcedFsa) => {
-    const fsa = forcedFsa || normalizeFSA(postalInput);
+  const searchFSA = useCallback(
+    async (forcedFsa) => {
+      const fsa = forcedFsa || normalizeFSA(postalInput);
 
-    setLoading(true);
-    setError("");
-    setResult(null);
+      setLoading(true);
+      setError("");
+      setResult(null);
 
-    try {
-      const { data, error } = await supabase
-        .from("fsa_map")
-        .select("fsa, succursale, postal_succursale")
-        .eq("fsa", fsa)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from("fsa_map")
+          .select("fsa, succursale, postal_succursale")
+          .eq("fsa", fsa)
+          .maybeSingle();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      if (!data) {
-        setError(`Aucun résultat pour ${fsa}. (À valider)`);
-        return;
+        if (!data) {
+          setError(`Aucun résultat pour ${fsa}. (À valider)`);
+          return;
+        }
+
+        setResult(data);
+      } catch (e) {
+        console.error(e);
+        setError("Erreur lors de la recherche. Vérifie la table fsa_map + RLS.");
+      } finally {
+        setLoading(false);
       }
-
-      setResult(data);
-    } catch (e) {
-      console.error(e);
-      setError("Erreur lors de la recherche. Vérifie la table fsa_map + RLS.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [postalInput, normalizeFSA]
+  );
 
   // ✅ Auto-recherche dès qu'on a 3 chars valides (avec debounce)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const fsa = normalizeFSA(postalInput);
 
@@ -107,9 +109,9 @@ export default function OutilsPage() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [postalInput]);
+  }, [postalInput, normalizeFSA, searchFSA]);
 
-  const onManualSearch = () => {
+  const onManualSearch = useCallback(() => {
     const fsa = normalizeFSA(postalInput);
     if (!/^[A-Z0-9]{3}$/.test(fsa)) {
       setError("Entre un code postal valide (au moins 3 caractères). Ex: G1P");
@@ -117,7 +119,7 @@ export default function OutilsPage() {
     }
     lastQueryRef.current = fsa;
     searchFSA(fsa);
-  };
+  }, [postalInput, normalizeFSA, searchFSA]);
 
   // =========================
   // ✅ Tool 2 — Décoder NIV (VIN) (API vPIC, aucun DB)
@@ -132,138 +134,154 @@ export default function OutilsPage() {
   const vinDebounceRef = useRef(null);
   const lastVinDecodedRef = useRef("");
 
-  const normalizeVin = (value) => (value || "").toUpperCase().trim();
+  const normalizeVin = useCallback((value) => (value || "").toUpperCase().trim(), []);
 
-  const isValidVin = (value) => {
-    const vin = normalizeVin(value);
-    if (vin.length !== 17) return false;
-    if (!/^[A-Z0-9]{17}$/.test(vin)) return false;
-    if (/[IOQ]/.test(vin)) return false; // standard VIN (évite confusion 1/0)
-    return true;
-  };
+  const safe = useCallback((v) => (v == null ? "" : String(v)).trim(), []);
 
-  const safe = (v) => (v == null ? "" : String(v)).trim();
+  const isValidVin = useCallback(
+    (value) => {
+      const vin = normalizeVin(value);
+      if (vin.length !== 17) return false;
+      if (!/^[A-Z0-9]{17}$/.test(vin)) return false;
+      if (/[IOQ]/.test(vin)) return false; // standard VIN (évite confusion 1/0)
+      return true;
+    },
+    [normalizeVin]
+  );
 
   // ✅ Formatage friendly (portes + drive type)
-  const formatDoorsDr = (doorsRaw) => {
-    const d = safe(doorsRaw);
-    const n = parseInt(d, 10);
-    if (!Number.isFinite(n) || n <= 0) return "";
-    return `${n}dr`;
-  };
+  const formatDoorsDr = useCallback(
+    (doorsRaw) => {
+      const d = safe(doorsRaw);
+      const n = parseInt(d, 10);
+      if (!Number.isFinite(n) || n <= 0) return "";
+      return `${n}dr`;
+    },
+    [safe]
+  );
 
-  const formatDriveTypeShort = (driveTypeRaw) => {
-    const s = safe(driveTypeRaw).toUpperCase();
-    if (!s) return "";
+  const formatDriveTypeShort = useCallback(
+    (driveTypeRaw) => {
+      const s = safe(driveTypeRaw).toUpperCase();
+      if (!s) return "";
 
-    // 4x2 = 2 roues motrices (2WD)
-    if (s.includes("4X2")) return "2WD";
+      // 4x2 = 2 roues motrices (2WD)
+      if (s.includes("4X2")) return "2WD";
 
-    // Ordre important
-    if (s.includes("AWD") || s.includes("ALL WHEEL")) return "AWD";
-    if (s.includes("RWD") || s.includes("REAR WHEEL")) return "RWD";
-    if (s.includes("FWD") || s.includes("FRONT WHEEL")) return "FWD";
+      // Ordre important
+      if (s.includes("AWD") || s.includes("ALL WHEEL")) return "AWD";
+      if (s.includes("RWD") || s.includes("REAR WHEEL")) return "RWD";
+      if (s.includes("FWD") || s.includes("FRONT WHEEL")) return "FWD";
 
-    if (
-      s.includes("4WD") ||
-      s.includes("4-WHEEL") ||
-      s.includes("4X4") ||
-      s.includes("FOUR WHEEL")
-    ) {
-      return "4WD";
-    }
+      if (s.includes("4WD") || s.includes("4-WHEEL") || s.includes("4X4") || s.includes("FOUR WHEEL")) {
+        return "4WD";
+      }
 
-    // Fallback: si inconnu, on garde brut (rare)
-    return safe(driveTypeRaw);
-  };
+      // Fallback: si inconnu, on garde brut (rare)
+      return safe(driveTypeRaw);
+    },
+    [safe]
+  );
 
-  const decodeVin = async (forcedVin) => {
-    const vin = normalizeVin(forcedVin ?? vinInput);
+  const decodeVin = useCallback(
+    async (forcedVin) => {
+      const vin = normalizeVin(forcedVin ?? vinInput);
 
-    setVinLoading(true);
-    setVinError("");
-    setVinResult(null);
-    setVinShowDetails(false);
+      setVinLoading(true);
+      setVinError("");
+      setVinResult(null);
+      setVinShowDetails(false);
 
-    if (!isValidVin(vin)) {
-      setVinLoading(false);
-      setVinError("NIV invalide (17 caractères, pas de I/O/Q).");
-      return;
-    }
-
-    try {
-      const url = `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${vin}?format=json`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Network error");
-      const json = await res.json();
-
-      const first = json?.Results?.[0] || {};
-
-      // Champs “core”
-      const modelYear = safe(first.ModelYear);
-      const make = safe(first.Make);
-      const model = safe(first.Model);
-
-      // Champs “version / finition” (pas toujours remplis)
-      const trim = safe(first.Trim);
-      const trim2 = safe(first.Trim2);
-      const series = safe(first.Series);
-
-      // Champs utiles (formatés)
-      const doors = formatDoorsDr(first.Doors);
-      const driveType = formatDriveTypeShort(first.DriveType);
-
-      // Autres détails fréquents (selon le VIN)
-      const bodyClass = safe(first.BodyClass);
-      const vehicleType = safe(first.VehicleType);
-      const engineCylinders = safe(first.EngineCylinders);
-      const displacementL = safe(first.DisplacementL);
-      const fuelTypePrimary = safe(first.FuelTypePrimary);
-      const transmissionStyle = safe(first.TransmissionStyle);
-      const transmissionSpeeds = safe(first.TransmissionSpeeds);
-      const plantCountry = safe(first.PlantCountry);
-      const plantCity = safe(first.PlantCity);
-      const plantState = safe(first.PlantState);
-
-      if (!modelYear && !make && !model) {
-        setVinError("Aucune info trouvée pour ce NIV.");
+      if (!isValidVin(vin)) {
+        setVinLoading(false);
+        setVinError("NIV invalide (17 caractères, pas de I/O/Q).");
         return;
       }
 
-      setVinResult({
-        modelYear,
-        make,
-        model,
-        trim,
-        trim2,
-        series,
-        doors,
-        driveType,
-        bodyClass,
-        vehicleType,
-        engineCylinders,
-        displacementL,
-        fuelTypePrimary,
-        transmissionStyle,
-        transmissionSpeeds,
-        plantCountry,
-        plantCity,
-        plantState,
-      });
-    } catch (e) {
-      console.error(e);
-      setVinError("Erreur lors du décodage (API vPIC).");
-    } finally {
-      setVinLoading(false);
-    }
-  };
+      try {
+        const url = `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${vin}?format=json`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Network error");
+        const json = await res.json();
 
-  const onVinKeyDown = (e) => {
-    if (e.key === "Enter") decodeVin();
-  };
+        const first = json?.Results?.[0] || {};
+
+        // Champs “core”
+        const modelYear = safe(first.ModelYear);
+        const make = safe(first.Make);
+        const model = safe(first.Model);
+
+        // Champs “version / finition” (pas toujours remplis)
+        const trim = safe(first.Trim);
+        const trim2 = safe(first.Trim2);
+        const series = safe(first.Series);
+
+        // Champs utiles (formatés)
+        const doors = formatDoorsDr(first.Doors);
+        const driveType = formatDriveTypeShort(first.DriveType);
+
+        // Autres détails fréquents
+        const bodyClass = safe(first.BodyClass);
+        const vehicleType = safe(first.VehicleType);
+        const engineCylinders = safe(first.EngineCylinders);
+        const displacementL = safe(first.DisplacementL);
+        const fuelTypePrimary = safe(first.FuelTypePrimary);
+        const transmissionStyle = safe(first.TransmissionStyle);
+        const transmissionSpeeds = safe(first.TransmissionSpeeds);
+        const plantCountry = safe(first.PlantCountry);
+        const plantCity = safe(first.PlantCity);
+        const plantState = safe(first.PlantState);
+
+        if (!modelYear && !make && !model) {
+          setVinError("Aucune info trouvée pour ce NIV.");
+          return;
+        }
+
+        setVinResult({
+          modelYear,
+          make,
+          model,
+          trim,
+          trim2,
+          series,
+          doors,
+          driveType,
+          bodyClass,
+          vehicleType,
+          engineCylinders,
+          displacementL,
+          fuelTypePrimary,
+          transmissionStyle,
+          transmissionSpeeds,
+          plantCountry,
+          plantCity,
+          plantState,
+        });
+      } catch (e) {
+        console.error(e);
+        setVinError("Erreur lors du décodage (API vPIC).");
+      } finally {
+        setVinLoading(false);
+      }
+    },
+    [
+      vinInput,
+      normalizeVin,
+      isValidVin,
+      safe,
+      formatDoorsDr,
+      formatDriveTypeShort,
+    ]
+  );
+
+  const onVinKeyDown = useCallback(
+    (e) => {
+      if (e.key === "Enter") decodeVin();
+    },
+    [decodeVin]
+  );
 
   // ✅ Auto-décodage quand on a EXACTEMENT 17 chars valides (avec debounce)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const vin = normalizeVin(vinInput);
 
@@ -288,9 +306,9 @@ export default function OutilsPage() {
     return () => {
       if (vinDebounceRef.current) clearTimeout(vinDebounceRef.current);
     };
-  }, [vinInput]);
+  }, [vinInput, normalizeVin, isValidVin, decodeVin]);
 
-  const buildVinSummary = (r) => {
+  const buildVinSummary = useCallback((r) => {
     if (!r) return "";
     const trimLike = r.trim || r.series || r.trim2;
     const doorsLike = r.doors || "";
@@ -299,7 +317,7 @@ export default function OutilsPage() {
     return [r.modelYear, r.make, r.model, trimLike, doorsLike, driveLike]
       .filter(Boolean)
       .join(" • ");
-  };
+  }, []);
 
   const DetailRow = ({ label, value }) => {
     if (!value) return null;
@@ -462,7 +480,6 @@ export default function OutilsPage() {
       <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
-            {/* ✅ Titre + petit "?" aide */}
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-semibold">Décoder un NIV (VIN)</h2>
 
@@ -497,11 +514,8 @@ export default function OutilsPage() {
               const next = e.target.value;
               setVinInput(next);
 
-              // ✅ Dès que le VIN change, on efface l’ancien résultat + détails
               if (vinResult) setVinResult(null);
               if (vinShowDetails) setVinShowDetails(false);
-
-              // ✅ On efface l’erreur quand l’utilisateur retape
               if (vinError) setVinError("");
             }}
             onKeyDown={onVinKeyDown}
@@ -612,14 +626,8 @@ export default function OutilsPage() {
                       <DetailRow label="Classe de carrosserie" value={vinResult.bodyClass} />
                       <DetailRow label="Portes" value={vinResult.doors} />
 
-                      <DetailRow
-                        label="DriveType (AWD/FWD/RWD/4WD/2WD)"
-                        value={vinResult.driveType}
-                      />
-                      <DetailRow
-                        label="Carburant (principal)"
-                        value={vinResult.fuelTypePrimary}
-                      />
+                      <DetailRow label="DriveType (AWD/FWD/RWD/4WD/2WD)" value={vinResult.driveType} />
+                      <DetailRow label="Carburant (principal)" value={vinResult.fuelTypePrimary} />
                       <DetailRow
                         label="Moteur"
                         value={[
@@ -630,14 +638,8 @@ export default function OutilsPage() {
                           .join(" • ")}
                       />
 
-                      <DetailRow
-                        label="Transmission (style)"
-                        value={vinResult.transmissionStyle}
-                      />
-                      <DetailRow
-                        label="Transmission (vitesses)"
-                        value={vinResult.transmissionSpeeds}
-                      />
+                      <DetailRow label="Transmission (style)" value={vinResult.transmissionStyle} />
+                      <DetailRow label="Transmission (vitesses)" value={vinResult.transmissionSpeeds} />
 
                       <DetailRow label="Usine (pays)" value={vinResult.plantCountry} />
                       <DetailRow label="Usine (ville)" value={vinResult.plantCity} />
