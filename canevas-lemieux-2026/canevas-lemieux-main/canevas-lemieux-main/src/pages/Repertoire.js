@@ -10,6 +10,27 @@ function normalizeText(s = "") {
     .trim();
 }
 
+// ✅ Téléchargement browser-safe
+function downloadBlob(filename, blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// ✅ CSV escaping (Excel-friendly)
+function csvEscape(v) {
+  const s = String(v ?? "");
+  // CSV standard: double quotes escaped, wrap when needed
+  const needsQuotes = /[",\n\r;]/.test(s);
+  const escaped = s.replace(/"/g, '""');
+  return needsQuotes ? `"${escaped}"` : escaped;
+}
+
 function Repertoire() {
   const [contacts, setContacts] = useState([]);
   const [assureurs, setAssureurs] = useState([]);
@@ -35,6 +56,10 @@ function Repertoire() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef(null);
+
+  // ✅ Export UI (boutons discrets)
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const exportMenuRef = useRef(null);
 
   const prefersReducedMotion = useReducedMotion();
 
@@ -191,11 +216,23 @@ function Repertoire() {
           setSearchQuery("");
           setSearchOpen(false);
         }
+        if (exportMenuOpen) setExportMenuOpen(false);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [searchOpen]);
+  }, [searchOpen, exportMenuOpen]);
+
+  // ✅ Fermer menu export si clic extérieur
+  useEffect(() => {
+    if (!exportMenuOpen) return;
+    const onClick = (e) => {
+      if (!exportMenuRef.current) return;
+      if (!exportMenuRef.current.contains(e.target)) setExportMenuOpen(false);
+    };
+    window.addEventListener("mousedown", onClick);
+    return () => window.removeEventListener("mousedown", onClick);
+  }, [exportMenuOpen]);
 
   // ✅ Recherche: filtre assureurs + résultats groupés
   const normalizedQuery = useMemo(() => normalizeText(searchQuery), [searchQuery]);
@@ -237,6 +274,124 @@ function Repertoire() {
     </svg>
   );
 
+  // =========================
+  // ✅ EXPORTS (Excel / Word)
+  // =========================
+  const getExportRows = (scope) => {
+    // scope = "all" | "selected"
+    const rows =
+      scope === "selected" && selectedAssureur
+        ? (groupedContacts[selectedAssureur] || []).map((c) => ({ ...c }))
+        : contacts.map((c) => ({ ...c }));
+
+    // Tri stable et lisible
+    rows.sort((a, b) => {
+      const aA = String(a.assureur || "");
+      const bA = String(b.assureur || "");
+      const cmpA = aA.localeCompare(bA, "fr", { sensitivity: "base" });
+      if (cmpA !== 0) return cmpA;
+
+      const aC = String(a.categorie || "");
+      const bC = String(b.categorie || "");
+      return aC.localeCompare(bC, "fr", { sensitivity: "base" });
+    });
+
+    return rows;
+  };
+
+  const exportExcelCSV = (scope = "all") => {
+    const rows = getExportRows(scope);
+
+    if (!rows.length) {
+      alert("Aucun contact à exporter.");
+      return;
+    }
+
+    // ✅ CSV UTF-8 BOM pour Excel (accents)
+    const BOM = "\ufeff";
+    const header = ["Assureur", "Catégorie", "Téléphone", "Courriel"];
+    const lines = [
+      header.map(csvEscape).join(";"),
+      ...rows.map((r) =>
+        [r.assureur, r.categorie, r.telephone, r.courriel].map(csvEscape).join(";")
+      ),
+    ];
+
+    const csv = BOM + lines.join("\r\n");
+    const filename =
+      scope === "selected" && selectedAssureur
+        ? `repertoire_${selectedAssureur}.csv`
+        : `repertoire_telephonique.csv`;
+
+    downloadBlob(filename, new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    setExportMenuOpen(false);
+  };
+
+  const exportWordDoc = (scope = "all") => {
+    const rows = getExportRows(scope);
+
+    if (!rows.length) {
+      alert("Aucun contact à exporter.");
+      return;
+    }
+
+    const title =
+      scope === "selected" && selectedAssureur
+        ? `Répertoire téléphonique — ${selectedAssureur}`
+        : "Répertoire téléphonique";
+
+    const now = new Date().toLocaleString("fr-CA");
+
+    const html = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>${title}</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size: 11pt; }
+  h1 { font-size: 16pt; margin: 0 0 6px 0; }
+  .meta { color: #666; font-size: 9pt; margin-bottom: 12px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
+  th { background: #f3f4f6; text-align: left; }
+</style>
+</head>
+<body>
+  <h1>${title}</h1>
+  <div class="meta">Exporté le ${now}</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Assureur</th>
+        <th>Catégorie</th>
+        <th>Téléphone</th>
+        <th>Courriel</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows
+        .map((r) => {
+          const a = String(r.assureur ?? "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          const c = String(r.categorie ?? "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          const t = String(r.telephone ?? "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          const e = String(r.courriel ?? "").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          return `<tr><td>${a}</td><td>${c}</td><td>${t}</td><td>${e}</td></tr>`;
+        })
+        .join("")}
+    </tbody>
+  </table>
+</body>
+</html>`;
+
+    const filename =
+      scope === "selected" && selectedAssureur
+        ? `repertoire_${selectedAssureur}.doc`
+        : `repertoire_telephonique.doc`;
+
+    downloadBlob(filename, new Blob([html], { type: "application/msword" }));
+    setExportMenuOpen(false);
+  };
+
   return (
     <div className="p-6">
       {/* ✅ Header modernisé + Recherche */}
@@ -256,6 +411,110 @@ function Repertoire() {
             <span className="text-xs bg-white/15 px-3 py-1 rounded-full">
               {contacts.length} contacts
             </span>
+
+            {/* ✅ EXPORT (discret) */}
+            <div className="relative" ref={exportMenuRef}>
+              <button
+                type="button"
+                onClick={() => setExportMenuOpen((v) => !v)}
+                title="Exporter le répertoire"
+                className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/15 hover:bg-white/20 transition"
+              >
+                {/* icône download */}
+                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path
+                    d="M12 3v10m0 0 4-4m-4 4-4-4"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+
+              <AnimatePresence>
+                {exportMenuOpen && (
+                  <motion.div
+                    initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
+                    transition={{ duration: prefersReducedMotion ? 0 : 0.14 }}
+                    className="absolute right-0 mt-2 w-64 rounded-xl border bg-white shadow-lg overflow-hidden z-20"
+                  >
+                    <div className="px-3 py-2 bg-gray-50 border-b">
+                      <div className="text-sm font-semibold text-gray-900">Exporter</div>
+                      <div className="text-xs text-gray-500">
+                        Tous les contacts ou assureur sélectionné.
+                      </div>
+                    </div>
+
+                    <div className="p-2 space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => exportExcelCSV("all")}
+                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 transition"
+                      >
+                        <div className="text-sm font-semibold text-gray-900">📊 Excel (CSV) — Tous</div>
+                        <div className="text-xs text-gray-500">Fichier .csv (ouvre dans Excel)</div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => exportWordDoc("all")}
+                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 transition"
+                      >
+                        <div className="text-sm font-semibold text-gray-900">📝 Word (DOC) — Tous</div>
+                        <div className="text-xs text-gray-500">Tableau Word simple</div>
+                      </button>
+
+                      <div className="h-px bg-gray-100 my-1" />
+
+                      <button
+                        type="button"
+                        disabled={!selectedAssureur}
+                        onClick={() => exportExcelCSV("selected")}
+                        className={`w-full text-left px-3 py-2 rounded-lg transition ${
+                          selectedAssureur ? "hover:bg-gray-50" : "opacity-50 cursor-not-allowed"
+                        }`}
+                      >
+                        <div className="text-sm font-semibold text-gray-900">
+                          📊 Excel (CSV) — {selectedAssureur ? selectedAssureur : "Assureur sélectionné"}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Disponible si un assureur est ouvert (+)
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={!selectedAssureur}
+                        onClick={() => exportWordDoc("selected")}
+                        className={`w-full text-left px-3 py-2 rounded-lg transition ${
+                          selectedAssureur ? "hover:bg-gray-50" : "opacity-50 cursor-not-allowed"
+                        }`}
+                      >
+                        <div className="text-sm font-semibold text-gray-900">
+                          📝 Word (DOC) — {selectedAssureur ? selectedAssureur : "Assureur sélectionné"}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Disponible si un assureur est ouvert (+)
+                        </div>
+                      </button>
+                    </div>
+
+                    <div className="px-3 py-2 border-t bg-gray-50 text-xs text-gray-500">
+                      Astuce: clique hors du menu ou ESC pour fermer.
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* ✅ Zone loupe + input */}
             <div

@@ -12,6 +12,9 @@ import AdminPage from "./pages/AdminPage";
 import Profile from "./pages/Profile";
 import OutilsPage from "./pages/OutilsPage";
 
+// ✅ Version de l'application (discrète, globale)
+const APP_VERSION = "1.01";
+
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState(null);
@@ -106,17 +109,15 @@ function App() {
     );
   }, []);
 
-  // ✅ Style des onglets (pills + actif + hover)
-const navItemClass = ({ isActive }) =>
-  [
-    "px-4 py-2 rounded-md text-base font-medium", // ⬅️ plus gros + plus d’air
-    "transition-all duration-200",
-    "hover:bg-white/20 hover:text-white",
-    "focus:outline-none focus:ring-2 focus:ring-white/50",
-    isActive
-      ? "bg-white/30 text-white shadow-sm" // ⬅️ actif très lisible
-      : "text-white",
-  ].join(" ");
+  // ✅ Style des onglets
+  const navItemClass = ({ isActive }) =>
+    [
+      "px-4 py-2 rounded-md text-base font-medium",
+      "transition-all duration-200",
+      "hover:bg-white/20 hover:text-white",
+      "focus:outline-none focus:ring-2 focus:ring-white/50",
+      isActive ? "bg-white/30 text-white shadow-sm" : "text-white",
+    ].join(" ");
 
   return (
     <Router>
@@ -232,6 +233,15 @@ const navItemClass = ({ isActive }) =>
           </Routes>
         </AnimatePresence>
       )}
+
+      {/* ✅ Version ultra discrète (visible partout) */}
+      <div
+        className="fixed bottom-2 right-3 z-50 text-[10px] text-gray-400/80 select-none"
+        style={{ pointerEvents: "none" }}
+        aria-hidden="true"
+      >
+        v{APP_VERSION}
+      </div>
     </Router>
   );
 }
