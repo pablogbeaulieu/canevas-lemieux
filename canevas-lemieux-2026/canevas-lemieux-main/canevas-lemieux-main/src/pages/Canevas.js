@@ -10,6 +10,8 @@ function Canevas({ sector = "particulier" }) {
   const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
   const [selectedCanevas, setSelectedCanevas] = useState(null);
 
+  const [showLegalModal, setShowLegalModal] = useState(false);
+
   const [clientName, setClientName] = useState("");
   const [policyNumber, setPolicyNumber] = useState("");
   const [cancellationDate, setCancellationDate] = useState("");
@@ -91,12 +93,22 @@ function Canevas({ sector = "particulier" }) {
   };
 
   const handleCanevasClick = async (category, subCategory, title, item) => {
+    // ==================== NOUVEAU : Questionnaire Agricole ====================
+    if (category === "Agricole" && 
+        subCategory === "Questions légales" && 
+        title === "Questionnaire") {
+      setShowLegalModal(true);
+      return;   // On arrête ici, on n'exécute pas le reste
+    }
+    // =======================================================================
+
+    // Comportement normal pour tous les autres canevas
     const content = item?.content || "";
     const id = item?.id ?? null;
 
     navigator.clipboard.writeText(content);
 
-    // ✅ Incrément DB (sans update local instantané)
+    // Incrément du compteur d'utilisation
     if (id) {
       try {
         const { error } = await supabase.rpc("increment_canevas_usage", { p_id: id });
@@ -106,7 +118,7 @@ function Canevas({ sector = "particulier" }) {
       }
     }
 
-    // ✅ NOUVEAU: toast aussi pour ANNU (pour que ce soit clair que c’est copié)
+    // Comportement spécial pour les canevas ANNU (modal script)
     if (isCancellationCanevas(category, subCategory, title)) {
       setCopiedMessage("Canevas copié !");
       setTimeout(() => setCopiedMessage(""), 2000);
@@ -294,6 +306,69 @@ Bien à vous,`;
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [searchOpen]);
+
+    // =========================
+  // ✅ Modal Questionnaire Légales - Agricole
+  // =========================
+  const handleLegalResponse = (reponse) => {
+    if (reponse === "oui") {
+      alert("✅ Autorisations acceptées");
+    } else {
+      alert("❌ Autorisations refusées");
+    }
+    setShowLegalModal(false);
+  };
+
+  const LegalQuestionnaireModal = () => (
+    <AnimatePresence>
+      {showLegalModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden"
+          >
+            <div className="px-6 py-5 border-b bg-gray-50">
+              <h2 className="text-xl font-semibold text-gray-900">
+                Questionnaire Légales - Agricole
+              </h2>
+            </div>
+
+            <div className="p-6 space-y-6 text-gray-800 leading-relaxed">
+              <div>
+                1. Afin de permettre à l’assureur d’accorder sa meilleure offre, 
+                l’autorisez-vous à obtenir vos informations de crédit auprès des agences 
+                d’évaluation du crédit ? Votre assureur pourra consulter ces agences pour 
+                faire des mises à jour lors de vos renouvellements ou modifications.
+              </div>
+
+              <div>
+                2. Donnez-vous l’autorisation aux assureurs de consulter votre dossier 
+                de sinistres au fichier centrale des sinistres automobile ainsi que 
+                tous les conducteurs mentionnés au contrat ?
+              </div>
+            </div>
+
+            <div className="border-t flex divide-x">
+              <button
+                onClick={() => handleLegalResponse("non")}
+                className="flex-1 py-4 text-red-600 font-medium hover:bg-gray-100 transition"
+              >
+                Non
+              </button>
+              <button
+                onClick={() => handleLegalResponse("oui")}
+                className="flex-1 py-4 text-emerald-600 font-semibold hover:bg-gray-100 transition"
+              >
+                Oui
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
 
   return (
     <motion.div
@@ -676,6 +751,10 @@ Bien à vous,`;
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ✅ NOUVEAU : Modal Questionnaire Légales Agricole */}
+      <LegalQuestionnaireModal />
+
     </motion.div>
   );
 }
