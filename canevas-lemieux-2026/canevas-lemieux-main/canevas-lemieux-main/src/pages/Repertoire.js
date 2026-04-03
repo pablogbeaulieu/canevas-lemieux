@@ -25,7 +25,6 @@ function downloadBlob(filename, blob) {
 // ✅ CSV escaping (Excel-friendly)
 function csvEscape(v) {
   const s = String(v ?? "");
-  // CSV standard: double quotes escaped, wrap when needed
   const needsQuotes = /[",\n\r;]/.test(s);
   const escaped = s.replace(/"/g, '""');
   return needsQuotes ? `"${escaped}"` : escaped;
@@ -52,14 +51,10 @@ function Repertoire() {
   const [editedTelephone, setEditedTelephone] = useState("");
   const [editedCourriel, setEditedCourriel] = useState("");
 
-  // ✅ Recherche (style Canevas)
+  // ✅ Recherche
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef(null);
-
-  // ✅ Export UI (boutons discrets)
-  const [exportMenuOpen, setExportMenuOpen] = useState(false);
-  const exportMenuRef = useRef(null);
 
   const prefersReducedMotion = useReducedMotion();
 
@@ -216,25 +211,13 @@ function Repertoire() {
           setSearchQuery("");
           setSearchOpen(false);
         }
-        if (exportMenuOpen) setExportMenuOpen(false);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [searchOpen, exportMenuOpen]);
+  }, [searchOpen]);
 
-  // ✅ Fermer menu export si clic extérieur
-  useEffect(() => {
-    if (!exportMenuOpen) return;
-    const onClick = (e) => {
-      if (!exportMenuRef.current) return;
-      if (!exportMenuRef.current.contains(e.target)) setExportMenuOpen(false);
-    };
-    window.addEventListener("mousedown", onClick);
-    return () => window.removeEventListener("mousedown", onClick);
-  }, [exportMenuOpen]);
-
-  // ✅ Recherche: filtre assureurs + résultats groupés
+  // ✅ Recherche
   const normalizedQuery = useMemo(() => normalizeText(searchQuery), [searchQuery]);
   const searchActive = searchOpen && normalizedQuery.length > 0;
 
@@ -243,11 +226,7 @@ function Repertoire() {
     const q = normalizedQuery;
 
     const matched = (assureurs || []).filter((a) => normalizeText(a).includes(q));
-
-    // Tri alpha
     matched.sort((a, b) => String(a).localeCompare(String(b), "fr", { sensitivity: "base" }));
-
-    // Limite raisonnable
     return matched.slice(0, 12);
   }, [searchActive, normalizedQuery, assureurs]);
 
@@ -275,39 +254,27 @@ function Repertoire() {
   );
 
   // =========================
-  // ✅ EXPORTS (Excel / Word)
+  // ✅ EXPORT FUNCTIONS
   // =========================
-  const getExportRows = (scope) => {
-    // scope = "all" | "selected"
-    const rows =
-      scope === "selected" && selectedAssureur
-        ? (groupedContacts[selectedAssureur] || []).map((c) => ({ ...c }))
-        : contacts.map((c) => ({ ...c }));
+  const getExportRows = () => {
+    const rows = contacts.map((c) => ({ ...c }));
 
-    // Tri stable et lisible
     rows.sort((a, b) => {
-      const aA = String(a.assureur || "");
-      const bA = String(b.assureur || "");
-      const cmpA = aA.localeCompare(bA, "fr", { sensitivity: "base" });
+      const cmpA = String(a.assureur || "").localeCompare(String(b.assureur || ""), "fr", { sensitivity: "base" });
       if (cmpA !== 0) return cmpA;
-
-      const aC = String(a.categorie || "");
-      const bC = String(b.categorie || "");
-      return aC.localeCompare(bC, "fr", { sensitivity: "base" });
+      return String(a.categorie || "").localeCompare(String(b.categorie || ""), "fr", { sensitivity: "base" });
     });
 
     return rows;
   };
 
-  const exportExcelCSV = (scope = "all") => {
-    const rows = getExportRows(scope);
-
+  const exportExcelCSV = () => {
+    const rows = getExportRows();
     if (!rows.length) {
       alert("Aucun contact à exporter.");
       return;
     }
 
-    // ✅ CSV UTF-8 BOM pour Excel (accents)
     const BOM = "\ufeff";
     const header = ["Assureur", "Catégorie", "Téléphone", "Courriel"];
     const lines = [
@@ -318,27 +285,15 @@ function Repertoire() {
     ];
 
     const csv = BOM + lines.join("\r\n");
-    const filename =
-      scope === "selected" && selectedAssureur
-        ? `repertoire_${selectedAssureur}.csv`
-        : `repertoire_telephonique.csv`;
-
-    downloadBlob(filename, new Blob([csv], { type: "text/csv;charset=utf-8" }));
-    setExportMenuOpen(false);
+    downloadBlob("repertoire_telephonique.csv", new Blob([csv], { type: "text/csv;charset=utf-8" }));
   };
 
-  const exportWordDoc = (scope = "all") => {
-    const rows = getExportRows(scope);
-
+  const exportWordDoc = () => {
+    const rows = getExportRows();
     if (!rows.length) {
       alert("Aucun contact à exporter.");
       return;
     }
-
-    const title =
-      scope === "selected" && selectedAssureur
-        ? `Répertoire téléphonique — ${selectedAssureur}`
-        : "Répertoire téléphonique";
 
     const now = new Date().toLocaleString("fr-CA");
 
@@ -346,19 +301,19 @@ function Repertoire() {
 <html>
 <head>
 <meta charset="utf-8" />
-<title>${title}</title>
+<title>Répertoire téléphonique</title>
 <style>
-  body { font-family: Arial, sans-serif; font-size: 11pt; }
-  h1 { font-size: 16pt; margin: 0 0 6px 0; }
-  .meta { color: #666; font-size: 9pt; margin-bottom: 12px; }
-  table { border-collapse: collapse; width: 100%; }
-  th, td { border: 1px solid #ddd; padding: 8px; vertical-align: top; }
-  th { background: #f3f4f6; text-align: left; }
+  body { font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.4; }
+  h1 { font-size: 16pt; margin: 0 0 8px 0; }
+  .meta { color: #666; font-size: 9pt; margin-bottom: 15px; }
+  table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+  th, td { border: 1px solid #ccc; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f8f9fa; }
 </style>
 </head>
 <body>
-  <h1>${title}</h1>
-  <div class="meta">Exporté le ${now}</div>
+  <h1>Répertoire téléphonique des assureurs</h1>
+  <div class="meta">Exporté le ${now} — ${rows.length} contacts</div>
   <table>
     <thead>
       <tr>
@@ -383,18 +338,12 @@ function Repertoire() {
 </body>
 </html>`;
 
-    const filename =
-      scope === "selected" && selectedAssureur
-        ? `repertoire_${selectedAssureur}.doc`
-        : `repertoire_telephonique.doc`;
-
-    downloadBlob(filename, new Blob([html], { type: "application/msword" }));
-    setExportMenuOpen(false);
+    downloadBlob("repertoire_telephonique.doc", new Blob([html], { type: "application/msword" }));
   };
 
   return (
     <div className="p-6">
-      {/* ✅ Header modernisé + Recherche */}
+      {/* Header avec les deux boutons discrets */}
       <div className="mb-6 rounded-xl bg-gradient-to-r from-blue-700 to-blue-900 text-white p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="min-w-0">
@@ -404,7 +353,7 @@ function Repertoire() {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 justify-end">
+          <div className="flex flex-wrap items-center gap-3 justify-end">
             <span className="text-xs bg-white/15 px-3 py-1 rounded-full">
               {assureurs.length} assureurs
             </span>
@@ -412,111 +361,24 @@ function Repertoire() {
               {contacts.length} contacts
             </span>
 
-            {/* ✅ EXPORT (discret) */}
-            <div className="relative" ref={exportMenuRef}>
-              <button
-                type="button"
-                onClick={() => setExportMenuOpen((v) => !v)}
-                title="Exporter le répertoire"
-                className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/15 hover:bg-white/20 transition"
-              >
-                {/* icône download */}
-                <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path
-                    d="M12 3v10m0 0 4-4m-4 4-4-4"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </button>
+            {/* === DEUX BOUTONS DISCRETS AJOUTÉS ICI === */}
+            <button
+              onClick={exportExcelCSV}
+              title="Exporter tout le répertoire en Excel"
+              className="inline-flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+            >
+              📊 Excel
+            </button>
 
-              <AnimatePresence>
-                {exportMenuOpen && (
-                  <motion.div
-                    initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
-                    transition={{ duration: prefersReducedMotion ? 0 : 0.14 }}
-                    className="absolute right-0 mt-2 w-64 rounded-xl border bg-white shadow-lg overflow-hidden z-20"
-                  >
-                    <div className="px-3 py-2 bg-gray-50 border-b">
-                      <div className="text-sm font-semibold text-gray-900">Exporter</div>
-                      <div className="text-xs text-gray-500">
-                        Tous les contacts ou assureur sélectionné.
-                      </div>
-                    </div>
+            <button
+              onClick={exportWordDoc}
+              title="Exporter tout le répertoire en Word"
+              className="inline-flex items-center gap-2 bg-white/15 hover:bg-white/25 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+            >
+              📝 Word
+            </button>
 
-                    <div className="p-2 space-y-2">
-                      <button
-                        type="button"
-                        onClick={() => exportExcelCSV("all")}
-                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 transition"
-                      >
-                        <div className="text-sm font-semibold text-gray-900">📊 Excel (CSV) — Tous</div>
-                        <div className="text-xs text-gray-500">Fichier .csv (ouvre dans Excel)</div>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => exportWordDoc("all")}
-                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 transition"
-                      >
-                        <div className="text-sm font-semibold text-gray-900">📝 Word (DOC) — Tous</div>
-                        <div className="text-xs text-gray-500">Tableau Word simple</div>
-                      </button>
-
-                      <div className="h-px bg-gray-100 my-1" />
-
-                      <button
-                        type="button"
-                        disabled={!selectedAssureur}
-                        onClick={() => exportExcelCSV("selected")}
-                        className={`w-full text-left px-3 py-2 rounded-lg transition ${
-                          selectedAssureur ? "hover:bg-gray-50" : "opacity-50 cursor-not-allowed"
-                        }`}
-                      >
-                        <div className="text-sm font-semibold text-gray-900">
-                          📊 Excel (CSV) — {selectedAssureur ? selectedAssureur : "Assureur sélectionné"}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Disponible si un assureur est ouvert (+)
-                        </div>
-                      </button>
-
-                      <button
-                        type="button"
-                        disabled={!selectedAssureur}
-                        onClick={() => exportWordDoc("selected")}
-                        className={`w-full text-left px-3 py-2 rounded-lg transition ${
-                          selectedAssureur ? "hover:bg-gray-50" : "opacity-50 cursor-not-allowed"
-                        }`}
-                      >
-                        <div className="text-sm font-semibold text-gray-900">
-                          📝 Word (DOC) — {selectedAssureur ? selectedAssureur : "Assureur sélectionné"}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Disponible si un assureur est ouvert (+)
-                        </div>
-                      </button>
-                    </div>
-
-                    <div className="px-3 py-2 border-t bg-gray-50 text-xs text-gray-500">
-                      Astuce: clique hors du menu ou ESC pour fermer.
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* ✅ Zone loupe + input */}
+            {/* Recherche */}
             <div
               className="flex items-center gap-2"
               onMouseEnter={() => setSearchOpen(true)}
@@ -579,7 +441,7 @@ function Repertoire() {
         </AnimatePresence>
       </div>
 
-      {/* ✅ Formulaire d'ajout (admins seulement) — caché en mode recherche */}
+      {/* Formulaire d'ajout (admins seulement) */}
       {!searchActive && userRole === "admin" && (
         <div className="mb-6">
           <div
@@ -588,7 +450,6 @@ function Repertoire() {
             }`}
           >
             <div className="bg-white border rounded-xl p-4 shadow-sm">
-              {/* Sélection ou ajout d'un assureur */}
               <div className="mb-3">
                 <label className="block font-semibold mb-1">Assureur :</label>
 
@@ -671,9 +532,7 @@ function Repertoire() {
         </div>
       )}
 
-      {/* ========================= */}
-      {/* ✅ MODE RECHERCHE */}
-      {/* ========================= */}
+      {/* MODE RECHERCHE */}
       <AnimatePresence mode="wait">
         {searchActive ? (
           <motion.div
@@ -730,6 +589,7 @@ function Repertoire() {
             )}
           </motion.div>
         ) : (
+          /* MODE NORMAL - Liste des assureurs */
           <motion.div
             key="normalMode"
             initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
@@ -742,7 +602,6 @@ function Repertoire() {
             ) : (
               assureurs.map((assureur) => (
                 <div key={assureur} className="mb-4">
-                  {/* ✅ En-tête assureur modernisé */}
                   <div
                     className="flex justify-between items-center bg-white p-4 cursor-pointer hover:bg-gray-50 transition-all duration-200 rounded-xl border shadow-sm"
                     onClick={() =>
@@ -767,7 +626,6 @@ function Repertoire() {
                       )}
                     </div>
 
-                    {/* ✅ Remplace la flèche par un + / – moderne */}
                     <div
                       className={[
                         "w-8 h-8 rounded-lg border border-gray-200",
@@ -776,13 +634,11 @@ function Repertoire() {
                         "transition",
                         "hover:bg-gray-50",
                       ].join(" ")}
-                      aria-hidden="true"
                     >
                       {selectedAssureur === assureur ? "–" : "+"}
                     </div>
                   </div>
 
-                  {/* ✅ Liste contacts avec transition */}
                   <div
                     className={`transition-all duration-500 ease-in-out overflow-hidden ${
                       selectedAssureur === assureur

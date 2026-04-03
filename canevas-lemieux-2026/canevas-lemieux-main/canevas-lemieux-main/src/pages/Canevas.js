@@ -92,13 +92,66 @@ function Canevas({ sector = "particulier" }) {
     return category === "ANNU" && subCategory === "TOUS" && title.includes("Annulation");
   };
 
+  // ====================== TÉLÉCHARGEMENT FICHIERS BOÎTE À OUTILS AGRICOLE ======================
+  const handleDownloadAgriculturalTool = (title) => {
+    let fileName = "";
+    let filePath = "";
+
+    switch (title.trim()) {
+      case "Inventaire agricole (court)":
+        fileName = "Inventaire_Agricole_Court.xls";
+        filePath = "/documents/Inventaire_Agricole_Court.xls";
+        break;
+      case "Inventaire agricole (long)":
+        fileName = "Inventaire_Agricole_Long.xlsx";
+        filePath = "/documents/Inventaire_Agricole_Long.xlsx";
+        break;
+      case "Proposition d'assurance agricole":
+        fileName = "Proposition_Assurance_Agricole.docx";
+        filePath = "/documents/Proposition_Assurance_Agricole.docx";
+        break;
+      case "Note de couverture - Équipement agricole":
+        fileName = "Note_Couverture_Equipement_Agricole.xlsx";
+        filePath = "/documents/Note_Couverture_Equipement_Agricole.xlsx";
+        break;
+      case "Note de couverture - Automobile":
+        fileName = "Note_Couverture_Automobile_Agricole.doc";
+        filePath = "/documents/Note_Couverture_Automobile_Agricole.doc";
+        break;
+      default:
+        alert("Fichier non trouvé pour ce canevas.");
+        return;
+    }
+
+    const link = document.createElement("a");
+    link.href = filePath;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleCanevasClick = async (category, subCategory, title, item) => {
+    // ==================== TÉLÉCHARGEMENT DIRECT - BOÎTE À OUTILS AGRICOLE ====================
+    if (category === "AGRICOLE" && subCategory === "Boîte à outils") {
+      handleDownloadAgriculturalTool(title);
+      // On incrémente quand même le compteur d'utilisation
+      if (item?.id) {
+        try {
+          await supabase.rpc("increment_canevas_usage", { p_id: item.id });
+        } catch (e) {
+          console.warn("Erreur increment usage_count:", e);
+        }
+      }
+      return; // On arrête ici, pas de copie texte ni modal
+    }
+
     // ==================== NOUVEAU : Questionnaire Agricole ====================
-    if (category === "Agricole" && 
+    if (category === "AGRICOLE" && 
         subCategory === "Questions légales" && 
         title === "Questionnaire") {
       setShowLegalModal(true);
-      return;   // On arrête ici, on n'exécute pas le reste
+      return;
     }
     // =======================================================================
 
@@ -307,7 +360,7 @@ Bien à vous,`;
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [searchOpen]);
 
-    // =========================
+  // =========================
   // ✅ Modal Questionnaire Légales - Agricole
   // =========================
   const handleLegalResponse = (reponse) => {
@@ -331,7 +384,7 @@ Bien à vous,`;
           >
             <div className="px-6 py-5 border-b bg-gray-50">
               <h2 className="text-xl font-semibold text-gray-900">
-                Questionnaire Légales - Agricole
+                Questionnaire légale - Agricole
               </h2>
             </div>
 
@@ -377,7 +430,7 @@ Bien à vous,`;
       transition={{ duration: prefersReducedMotion ? 0 : 0.22 }}
       className="p-6 bg-white"
     >
-      {/* ✅ Header modernisé + recherche intégrée */}
+      {/* Header + recherche (inchangé) */}
       <div className="mb-6 rounded-xl bg-gradient-to-r from-blue-700 to-blue-900 text-white p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="min-w-0">
@@ -402,7 +455,6 @@ Bien à vous,`;
               </span>
             )}
 
-            {/* ✅ Zone loupe + input (hover ONLY ici) */}
             <div
               className="flex items-center gap-2"
               onMouseEnter={() => setSearchOpen(true)}
@@ -456,7 +508,7 @@ Bien à vous,`;
         </AnimatePresence>
       </div>
 
-      {/* ✅ Toast copie */}
+      {/* Toast copie */}
       <AnimatePresence>
         {copiedMessage && (
           <motion.div
@@ -472,11 +524,10 @@ Bien à vous,`;
         )}
       </AnimatePresence>
 
-      {/* ========================= */}
-      {/* ✅ MODE RECHERCHE */}
-      {/* ========================= */}
+      {/* Mode recherche et affichage normal (inchangé) */}
       <AnimatePresence mode="wait">
         {searchActive ? (
+          /* ... partie recherche inchangée ... */
           <motion.div
             key="searchResults"
             variants={swapContainer}
@@ -539,7 +590,7 @@ Bien à vous,`;
             animate="show"
             exit="exit"
           >
-            {/* Catégories */}
+            {/* Catégories, sous-catégories et canevas (inchangés) */}
             <div className="mt-4">
               <h2 className="text-xl font-semibold">Catégories</h2>
               <div className="flex flex-wrap gap-2 mt-2">
@@ -565,7 +616,6 @@ Bien à vous,`;
               </div>
             </div>
 
-            {/* Sous-catégories */}
             <AnimatePresence mode="wait">
               {selectedCategory && (
                 <motion.div
@@ -599,7 +649,6 @@ Bien à vous,`;
               )}
             </AnimatePresence>
 
-            {/* Canevas */}
             <AnimatePresence mode="wait">
               {selectedSubCategory && (
                 <motion.div
@@ -662,7 +711,7 @@ Bien à vous,`;
         )}
       </AnimatePresence>
 
-      {/* Modal script annulation */}
+      {/* Modal script annulation (inchangé) */}
       <AnimatePresence>
         {isScriptModalOpen && selectedCanevas && (
           <motion.div
@@ -752,9 +801,8 @@ Bien à vous,`;
         )}
       </AnimatePresence>
 
-      {/* ✅ NOUVEAU : Modal Questionnaire Légales Agricole */}
+      {/* Modal Questionnaire Légales */}
       <LegalQuestionnaireModal />
-
     </motion.div>
   );
 }
