@@ -18,9 +18,9 @@ export default function OutilsPage() {
   }, []);
 
   const buildMapsUrl = useCallback((origin, destination) => {
-    const o = encodeURIComponent(origin || "");
-    const d = encodeURIComponent(destination || "");
-    return `https://can01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.google.com%2Fmaps%2Fdir%2F%3Fapi%3D1%26origin%3D%24&data=05%7C02%7Cpablo.beaulieu%40lemieuxassurances.com%7Cf40de232626b4d6247da08de9a3f2939%7C5040b6819ccd49519a6c9d4351d06190%7C0%7C0%7C639117793292028842%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=1PEqnxoNaqYqVWzGJmO85QqHYc72YaI%2Fz1HnYSveh5A%3D&reserved=0{o}&destination=${d}`;
+    const encodedOrigin = encodeURIComponent(origin || "");
+    const encodedDestination = encodeURIComponent(destination || "");
+    return `https://can01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.google.com%2Fmaps%2Fdir%2F%3Fapi%3D1%26origin%3D%24&data=05%7C02%7Cpablo.beaulieu%40lemieuxassurances.com%7Ceefe968f2b08491fdd5e08de9a4015c9%7C5040b6819ccd49519a6c9d4351d06190%7C0%7C0%7C639117797220999053%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=%2BdGopbKLHKP41gIlc2f4EeGdMwMa8AZ13%2BgNd1YodSQ%3D&reserved=0{encodedOrigin}&destination=${encodedDestination}`;
   }, []);
 
   const originForMaps = useCallback(() => {
@@ -180,7 +180,7 @@ export default function OutilsPage() {
       }
 
       try {
-        const url = `https://can01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fvpic.nhtsa.dot.gov%2Fapi%2Fvehicles%2FDecodeVinValues%2F%24&data=05%7C02%7Cpablo.beaulieu%40lemieuxassurances.com%7Cf40de232626b4d6247da08de9a3f2939%7C5040b6819ccd49519a6c9d4351d06190%7C0%7C0%7C639117793292056923%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=3hNJ4x3D1VuZug4%2FZB2izDmzpCNOPKsiZ7uyhM4kNQk%3D&reserved=0{vin}?format=json`;
+        const url = `https://can01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fvpic.nhtsa.dot.gov%2Fapi%2Fvehicles%2FDecodeVinValues%2F%24&data=05%7C02%7Cpablo.beaulieu%40lemieuxassurances.com%7Ceefe968f2b08491fdd5e08de9a4015c9%7C5040b6819ccd49519a6c9d4351d06190%7C0%7C0%7C639117797221035859%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=aeK1OqiHlQUNEH48%2FXfY3paBMSsiQr14bNbgIcch8ac%3D&reserved=0{vin}?format=json`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("Network error");
         const json = await res.json();
@@ -287,7 +287,7 @@ export default function OutilsPage() {
   // =========================
   const _openAgencyCodes = () => {
     window.open(
-      "https://lemieuxassurance.sharepoint.com/:x:/s/AssurancedesParticuliers/IQD8BnLgpBioQolYeKsS37jRATym_KyNd4IF_sXm3KOrIDs?e=7g9A2w&xsdata=MDV8MDJ8cGFibG8uYmVhdWxpZXVAbGVtaWV1eGFzc3VyYW5jZXMuY29tfGY0MGRlMjMyNjI2YjRkNjI0N2RhMDhkZTlhM2YyOTM5fDUwNDBiNjgxOWNjZDQ5NTE5YTZjOWQ0MzUxZDA2MTkwfDB8MHw2MzkxMTc3OTMyOTIwNzYwNDF8VW5rbm93bnxUV0ZwYkdac2IzZDhleUpGYlhCMGVVMWhjR2tpT25SeWRXVXNJbFlpT2lJd0xqQXVNREF3TUNJc0lsQWlPaUpYYVc0ek1pSXNJa0ZPSWpvaVRXRnBiQ0lzSWxkVUlqb3lmUT09fDB8fHw%3d&sdata=ZDkvcWV5dVozZW8za3ZBOEQrTjJDT3cwSVoxTjlSQUtLTStMTm8yc0hqVT0%3d",
+      "https://lemieuxassurance.sharepoint.com/:x:/s/AssurancedesParticuliers/IQD8BnLgpBioQolYeKsS37jRATym_KyNd4IF_sXm3KOrIDs?e=7g9A2w&xsdata=MDV8MDJ8cGFibG8uYmVhdWxpZXVAbGVtaWV1eGFzc3VyYW5jZXMuY29tfGVlZmU5NjhmMmIwODQ5MWZkZDVlMDhkZTlhNDAxNWM5fDUwNDBiNjgxOWNjZDQ5NTE5YTZjOWQ0MzUxZDA2MTkwfDB8MHw2MzkxMTc3OTcyMjEwNjM1NjR8VW5rbm93bnxUV0ZwYkdac2IzZDhleUpGYlhCMGVVMWhjR2tpT25SeWRXVXNJbFlpT2lJd0xqQXVNREF3TUNJc0lsQWlPaUpYYVc0ek1pSXNJa0ZPSWpvaVRXRnBiQ0lzSWxkVUlqb3lmUT09fDB8fHw%3d&sdata=RVhXcFphaUMzc0laeUdYMWJOUkZrSHJYQU83Wk1PeEVVUU5RaHFtQUxwST0%3d",
       "_blank"
     );
   };
@@ -416,7 +416,6 @@ export default function OutilsPage() {
 
       {/* Tool 2 — Décoder NIV (VIN) */}
       <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
-        {/* ... Tool 2 reste inchangé ... */}
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
@@ -468,7 +467,6 @@ export default function OutilsPage() {
           Astuce: un VIN valide fait exactement <b>17</b> caractères (sans I, O, Q).
         </div>
 
-        {/* Le reste du Tool 2 reste identique à ton code */}
         <AnimatePresence>
           {vinLoading && (
             <motion.div
