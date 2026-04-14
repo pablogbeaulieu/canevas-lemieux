@@ -1,6 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import { supabase } from "../api";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { useState, useEffect, useMemo, useRef } from "react"; import { supabase } from "../api"; import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 function Canevas({ sector = "particulier" }) {
   const [canevasData, setCanevasData] = useState({});
@@ -17,6 +15,12 @@ function Canevas({ sector = "particulier" }) {
   const [cancellationDate, setCancellationDate] = useState("");
   const [insuranceType, setInsuranceType] = useState("");
   const [insurerName, setInsurerName] = useState("");
+
+  // ✅ NOUVEAUX ÉTATS POUR LA PROCURATION VERBALE
+  const [isProcurationModalOpen, setIsProcurationModalOpen] = useState(false);
+  const [assureName, setAssureName] = useState("");
+  const [authorizedPerson, setAuthorizedPerson] = useState("");
+  const [procurationDate, setProcurationDate] = useState("");
 
   // ✅ Recherche
   const [searchOpen, setSearchOpen] = useState(false);
@@ -66,7 +70,6 @@ function Canevas({ sector = "particulier" }) {
       }, {});
 
       setCanevasData(formattedData);
-
       setSelectedCategory(null);
       setSelectedSubCategory(null);
     } catch (error) {
@@ -90,6 +93,12 @@ function Canevas({ sector = "particulier" }) {
 
   const isCancellationCanevas = (category, subCategory, title) => {
     return category === "ANNU" && subCategory === "TOUS" && title.includes("Annulation");
+  };
+
+  // ✅ NOUVELLE FONCTION : Détecte le canevas "Procuration verbale"
+  const isProcurationVerbaleCanevas = (category, subCategory, title) => {
+    return title === "Procuration verbale" || 
+           title.toLowerCase().includes("procuration verbale");
   };
 
   // ====================== TÉLÉCHARGEMENT FICHIERS BOÎTE À OUTILS AGRICOLE ======================
@@ -135,7 +144,6 @@ function Canevas({ sector = "particulier" }) {
     // ==================== TÉLÉCHARGEMENT DIRECT - BOÎTE À OUTILS AGRICOLE ====================
     if (category === "AGRICOLE" && subCategory === "Boîte à outils") {
       handleDownloadAgriculturalTool(title);
-      // On incrémente quand même le compteur d'utilisation
       if (item?.id) {
         try {
           await supabase.rpc("increment_canevas_usage", { p_id: item.id });
@@ -143,17 +151,31 @@ function Canevas({ sector = "particulier" }) {
           console.warn("Erreur increment usage_count:", e);
         }
       }
-      return; // On arrête ici, pas de copie texte ni modal
+      return;
     }
 
-    // ==================== NOUVEAU : Questionnaire Agricole ====================
+    // ==================== Questionnaire Agricole ====================
     if (category === "AGRICOLE" && 
         subCategory === "Questions légales" && 
         title === "Questionnaire") {
       setShowLegalModal(true);
       return;
     }
-    // =======================================================================
+
+    // ==================== NOUVEAU : Procuration Verbale ====================
+    if (isProcurationVerbaleCanevas(category, subCategory, title)) {
+      setIsProcurationModalOpen(true);
+      
+      // Incrément du compteur d'utilisation
+      if (item?.id) {
+        try {
+          await supabase.rpc("increment_canevas_usage", { p_id: item.id });
+        } catch (e) {
+          console.warn("Erreur increment usage_count:", e);
+        }
+      }
+      return;
+    }
 
     // Comportement normal pour tous les autres canevas
     const content = item?.content || "";
@@ -203,6 +225,15 @@ Soyez ainsi informé(e) que nous ne ferons aucune démarche auprès d’autres a
 Dans l’intervalle, et si besoin était, nous demeurons disponibles.
 
 Bien à vous,`;
+  };
+
+  // ✅ NOUVELLE FONCTION : Génère le script de procuration en temps réel
+  const generateProcurationScript = () => {
+    const date = procurationDate 
+      ? new Date(procurationDate).toLocaleDateString('fr-CA') 
+      : new Date().toLocaleDateString('fr-CA');
+
+    return `Je ${assureName} autorise ${authorizedPerson} à transiger dans mon dossier. Obtenir des informations, faire des modifications et effectuer des transactions concernant mon dossier automobile et habitation. Cette autorisation est valide jusqu'à avis contraire et débute le ${date}.`;
   };
 
   const pageTitle =
@@ -432,6 +463,7 @@ Bien à vous,`;
     >
       {/* Header + recherche (inchangé) */}
       <div className="mb-6 rounded-xl bg-gradient-to-r from-blue-700 to-blue-900 text-white p-5 shadow-sm">
+        {/* ... tout le header identique ... */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-2xl sm:text-3xl font-bold">{pageTitle}</h1>
@@ -527,7 +559,6 @@ Bien à vous,`;
       {/* Mode recherche et affichage normal (inchangé) */}
       <AnimatePresence mode="wait">
         {searchActive ? (
-          /* ... partie recherche inchangée ... */
           <motion.div
             key="searchResults"
             variants={swapContainer}
@@ -683,7 +714,7 @@ Bien à vous,`;
                         >
                           {isTableauComparatif ? (
                             <a
-                              href="https://lemieuxassurance-my.sharepoint.com/:x:/g/personal/pablo_beaulieu_lemieuxassurances_com/EdwMKQ9SzOtLv69Ny-a8jNYBpP9TPgCYxqom8spHJRlAIA?e=HMIfTI"
+                              href="https://lemieuxassurance-my.sharepoint.com/:x:/g/personal/pablo_beaulieu_lemieuxassurances_com/EdwMKQ9SzOtLv69Ny-a8jNYBpP9TPgCYxqom8spHJRlAIA?e=HMIfTI&xsdata=MDV8MDJ8cGFibG8uYmVhdWxpZXVAbGVtaWV1eGFzc3VyYW5jZXMuY29tfDViMGVmN2FkMmQxNzQ5MjcwMWMxMDhkZTlhM2JkNWI5fDUwNDBiNjgxOWNjZDQ5NTE5YTZjOWQ0MzUxZDA2MTkwfDB8MHw2MzkxMTc3Nzg5NzI0ODg4NTl8VW5rbm93bnxUV0ZwYkdac2IzZDhleUpGYlhCMGVVMWhjR2tpT25SeWRXVXNJbFlpT2lJd0xqQXVNREF3TUNJc0lsQWlPaUpYYVc0ek1pSXNJa0ZPSWpvaVRXRnBiQ0lzSWxkVUlqb3lmUT09fDB8fHw%3d&sdata=Rk9ibXl2RlZXY0VjNHBBNW84WlpPN1BRVVBBKy9CNVN2OHB6WnlBcGFUST0%3d"
                               target="_blank"
                               rel="noopener noreferrer"
                               className="block w-full text-left text-base sm:text-lg font-semibold p-3 border rounded-xl bg-blue-50 hover:bg-blue-100 hover:text-blue-900 transition hover:shadow-sm hover:-translate-y-[1px] active:scale-[0.99]"
@@ -794,6 +825,102 @@ Bien à vous,`;
                   className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
                 >
                   Copier
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ====================== NOUVELLE MODAL PROCURATION VERBALE ====================== */}
+      <AnimatePresence>
+        {isProcurationModalOpen && (
+          <motion.div
+            key="procurationModal"
+            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.16 }}
+            className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4"
+          >
+            <motion.div
+              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 10, scale: 0.98 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.18, ease: "easeOut" }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden"
+            >
+              <div className="px-6 py-5 border-b bg-gray-50">
+                <h2 className="text-2xl font-semibold text-gray-900">Procuration verbale</h2>
+                <p className="text-sm text-gray-500 mt-1">Remplissez les informations ci-dessous</p>
+              </div>
+
+              <div className="p-6 space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom de l’assuré</label>
+                  <input
+                    type="text"
+                    placeholder="Nom complet de l'assuré"
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={assureName}
+                    onChange={(e) => setAssureName(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom de la personne autorisée</label>
+                  <input
+                    type="text"
+                    placeholder="Nom de la personne autorisée"
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={authorizedPerson}
+                    onChange={(e) => setAuthorizedPerson(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date du jour</label>
+                  <input
+                    type="date"
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={procurationDate}
+                    onChange={(e) => setProcurationDate(e.target.value)}
+                  />
+                </div>
+
+                <div className="pt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Script verbal </label>
+                  <textarea
+                    className="w-full p-4 border border-gray-300 rounded-2xl font-medium text-gray-800 leading-relaxed resize-y min-h-[140px]"
+                    readOnly
+                    value={generateProcurationScript()}
+                  />
+                </div>
+              </div>
+
+              <div className="border-t px-6 py-4 flex gap-3 bg-gray-50">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(generateProcurationScript());
+                    setCopiedMessage("Procuration copiée !");
+                    setTimeout(() => setCopiedMessage(""), 2000);
+                  }}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 rounded-xl transition"
+                >
+                  Copier le texte
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsProcurationModalOpen(false);
+                    // Réinitialiser les champs
+                    setAssureName("");
+                    setAuthorizedPerson("");
+                    setProcurationDate("");
+                  }}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 rounded-xl transition"
+                >
+                  Fermer
                 </button>
               </div>
             </motion.div>

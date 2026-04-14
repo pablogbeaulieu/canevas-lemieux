@@ -27,7 +27,6 @@ export default function OutilsPage() {
 
   const originForMaps = useCallback(() => {
     const raw = (postalInput || "").trim().toUpperCase();
-    // Si le user a tapé le code complet, on l'utilise (sinon FSA)
     return raw.replace(/\s+/g, "").length >= 6 ? raw : normalizeFSA(raw);
   }, [postalInput, normalizeFSA]);
 
@@ -64,11 +63,10 @@ export default function OutilsPage() {
     [postalInput, normalizeFSA]
   );
 
-  // ✅ Auto-recherche dès qu'on a 3 chars valides (avec debounce)
+  // ✅ Auto-recherche avec debounce
   useEffect(() => {
     const fsa = normalizeFSA(postalInput);
 
-    // Reset si vide
     if (!postalInput.trim()) {
       setError("");
       setResult(null);
@@ -78,7 +76,6 @@ export default function OutilsPage() {
       return;
     }
 
-    // Si pas assez long (moins de 3), on n'appelle pas
     if (fsa.length < 3) {
       setError("");
       setResult(null);
@@ -87,7 +84,6 @@ export default function OutilsPage() {
       return;
     }
 
-    // Validation simple : 3 chars alphanum
     if (!/^[A-Z0-9]{3}$/.test(fsa)) {
       setError("Entre un code postal valide (au moins 3 caractères). Ex: G1P");
       setResult(null);
@@ -96,10 +92,8 @@ export default function OutilsPage() {
       return;
     }
 
-    // Évite de relancer la même recherche en boucle
     if (lastQueryRef.current === fsa) return;
 
-    // Debounce 350ms (évite de spam Supabase)
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       lastQueryRef.current = fsa;
@@ -122,7 +116,7 @@ export default function OutilsPage() {
   }, [postalInput, normalizeFSA, searchFSA]);
 
   // =========================
-  // ✅ Tool 2 — Décoder NIV (VIN) (API vPIC, aucun DB)
+  // ✅ Tool 2 — Décoder NIV (VIN)
   // =========================
   const [vinInput, setVinInput] = useState("");
   const [vinLoading, setVinLoading] = useState(false);
@@ -130,7 +124,6 @@ export default function OutilsPage() {
   const [vinError, setVinError] = useState("");
   const [vinShowDetails, setVinShowDetails] = useState(false);
 
-  // Debounce + anti-replay pour auto-décodage VIN
   const vinDebounceRef = useRef(null);
   const lastVinDecodedRef = useRef("");
 
@@ -143,13 +136,12 @@ export default function OutilsPage() {
       const vin = normalizeVin(value);
       if (vin.length !== 17) return false;
       if (!/^[A-Z0-9]{17}$/.test(vin)) return false;
-      if (/[IOQ]/.test(vin)) return false; // standard VIN (évite confusion 1/0)
+      if (/[IOQ]/.test(vin)) return false;
       return true;
     },
     [normalizeVin]
   );
 
-  // ✅ Formatage friendly (portes + drive type)
   const formatDoorsDr = useCallback(
     (doorsRaw) => {
       const d = safe(doorsRaw);
@@ -164,20 +156,11 @@ export default function OutilsPage() {
     (driveTypeRaw) => {
       const s = safe(driveTypeRaw).toUpperCase();
       if (!s) return "";
-
-      // 4x2 = 2 roues motrices (2WD)
       if (s.includes("4X2")) return "2WD";
-
-      // Ordre important
       if (s.includes("AWD") || s.includes("ALL WHEEL")) return "AWD";
       if (s.includes("RWD") || s.includes("REAR WHEEL")) return "RWD";
       if (s.includes("FWD") || s.includes("FRONT WHEEL")) return "FWD";
-
-      if (s.includes("4WD") || s.includes("4-WHEEL") || s.includes("4X4") || s.includes("FOUR WHEEL")) {
-        return "4WD";
-      }
-
-      // Fallback: si inconnu, on garde brut (rare)
+      if (s.includes("4WD") || s.includes("4-WHEEL") || s.includes("4X4")) return "4WD";
       return safe(driveTypeRaw);
     },
     [safe]
@@ -206,21 +189,14 @@ export default function OutilsPage() {
 
         const first = json?.Results?.[0] || {};
 
-        // Champs “core”
         const modelYear = safe(first.ModelYear);
         const make = safe(first.Make);
         const model = safe(first.Model);
-
-        // Champs “version / finition” (pas toujours remplis)
         const trim = safe(first.Trim);
         const trim2 = safe(first.Trim2);
         const series = safe(first.Series);
-
-        // Champs utiles (formatés)
         const doors = formatDoorsDr(first.Doors);
         const driveType = formatDriveTypeShort(first.DriveType);
-
-        // Autres détails fréquents
         const bodyClass = safe(first.BodyClass);
         const vehicleType = safe(first.VehicleType);
         const engineCylinders = safe(first.EngineCylinders);
@@ -264,40 +240,20 @@ export default function OutilsPage() {
         setVinLoading(false);
       }
     },
-    [
-      vinInput,
-      normalizeVin,
-      isValidVin,
-      safe,
-      formatDoorsDr,
-      formatDriveTypeShort,
-    ]
+    [vinInput, normalizeVin, isValidVin, safe, formatDoorsDr, formatDriveTypeShort]
   );
 
-  const onVinKeyDown = useCallback(
-    (e) => {
-      if (e.key === "Enter") decodeVin();
-    },
-    [decodeVin]
-  );
+  const onVinKeyDown = useCallback((e) => {
+    if (e.key === "Enter") decodeVin();
+  }, [decodeVin]);
 
-  // ✅ Auto-décodage quand on a EXACTEMENT 17 chars valides (avec debounce)
   useEffect(() => {
     const vin = normalizeVin(vinInput);
-
-    // Si on retape / efface, on annule le debounce
     if (vinDebounceRef.current) clearTimeout(vinDebounceRef.current);
-
-    // Pas 17 chars -> on ne fait rien
     if (vin.length !== 17) return;
-
-    // 17 chars mais invalide (I/O/Q etc) -> on ne spam pas
     if (!isValidVin(vin)) return;
-
-    // Évite de redécoder le même VIN
     if (lastVinDecodedRef.current === vin) return;
 
-    // Debounce (coller/taper)
     vinDebounceRef.current = setTimeout(() => {
       lastVinDecodedRef.current = vin;
       decodeVin(vin);
@@ -313,7 +269,6 @@ export default function OutilsPage() {
     const trimLike = r.trim || r.series || r.trim2;
     const doorsLike = r.doors || "";
     const driveLike = r.driveType || "";
-
     return [r.modelYear, r.make, r.model, trimLike, doorsLike, driveLike]
       .filter(Boolean)
       .join(" • ");
@@ -330,9 +285,19 @@ export default function OutilsPage() {
   };
 
   // =========================
+  // ✅ Tool 3 — Liste des codes d'agence (lien SharePoint)
+  // =========================
+  const openAgencyCodes = () => {
+    window.open(
+      "https://lemieuxassurance.sharepoint.com/:x:/s/AssurancedesParticuliers/IQD8BnLgpBioQolYeKsS37jRATym_KyNd4IF_sXm3KOrIDs?e=7g9A2w",
+      "_blank"
+    );
+  };
+
+  // =========================
   // UI Meta
   // =========================
-  const toolCount = 2;
+  const toolCount = 3;
   const helpText =
     "Entre les 3 premiers caractères du code postal (ex: G1P). La recherche démarre automatiquement.";
 
@@ -343,7 +308,7 @@ export default function OutilsPage() {
       transition={{ duration: 0.22 }}
       className="p-6 bg-white"
     >
-      {/* ✅ Header modernisé */}
+      {/* Header */}
       <div className="mb-6 rounded-xl bg-gradient-to-r from-blue-700 to-blue-900 text-white p-5 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
@@ -357,23 +322,11 @@ export default function OutilsPage() {
             <span className="text-xs bg-white/15 px-3 py-1 rounded-full">
               {toolCount} outils disponibles
             </span>
-            {result?.succursale && (
-              <span className="text-xs bg-white/15 px-3 py-1 rounded-full">
-                Succursale trouvée
-              </span>
-            )}
-            {vinResult?.make && (
-              <span className="text-xs bg-white/15 px-3 py-1 rounded-full">
-                VIN décodé
-              </span>
-            )}
           </div>
         </div>
       </div>
 
-      {/* ========================= */}
-      {/* ✅ Carte outil 1 — Succursale */}
-      {/* ========================= */}
+      {/* Tool 1 — Succursale */}
       <div className="border rounded-xl p-5 bg-gray-50 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -382,7 +335,6 @@ export default function OutilsPage() {
             </h2>
             <p className="text-sm text-gray-600 mt-1">{helpText}</p>
           </div>
-
           <span className="hidden sm:inline-flex text-xs font-medium bg-white border px-3 py-1 rounded-full text-gray-700">
             À jour
           </span>
@@ -395,7 +347,6 @@ export default function OutilsPage() {
             placeholder="Ex: G1P ou G1P 1K6"
             className="flex-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
           />
-
           <button
             onClick={onManualSearch}
             disabled={loading}
@@ -408,11 +359,9 @@ export default function OutilsPage() {
         <AnimatePresence>
           {loading && (
             <motion.div
-              key="loading"
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.18 }}
               className="mt-3 text-sm text-gray-600"
             >
               ⏳ Recherche en cours…
@@ -423,11 +372,9 @@ export default function OutilsPage() {
         <AnimatePresence>
           {!!error && !loading && (
             <motion.div
-              key="error"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.2 }}
               className="mt-4 text-red-600 text-sm"
             >
               {error}
@@ -438,27 +385,22 @@ export default function OutilsPage() {
         <AnimatePresence>
           {result && !loading && (
             <motion.div
-              key="result"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              transition={{ duration: 0.22 }}
               className="mt-4 p-4 bg-white border rounded-xl"
             >
               <div className="text-sm text-gray-500 mb-2">
                 FSA: <b>{result.fsa}</b>
               </div>
-
               <div className="text-lg font-semibold">
                 Succursale: {result.succursale}
               </div>
-
               {result.postal_succursale && (
                 <div className="text-sm text-gray-700 mt-1">
                   Code postal succursale: <b>{result.postal_succursale}</b>
                 </div>
               )}
-
               {result.postal_succursale && (
                 <a
                   className="inline-flex items-center gap-2 mt-3 text-sm bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition font-semibold"
@@ -474,34 +416,27 @@ export default function OutilsPage() {
         </AnimatePresence>
       </div>
 
-      {/* ========================= */}
-      {/* ✅ Carte outil 2 — Décodage NIV (VIN) */}
-      {/* ========================= */}
+      {/* Tool 2 — Décoder NIV (VIN) */}
       <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-semibold">Décoder un NIV (VIN)</h2>
-
               <span className="relative inline-flex group">
                 <span className="cursor-help select-none inline-flex items-center justify-center w-5 h-5 rounded-full border text-xs font-bold text-gray-700 bg-white">
                   ?
                 </span>
-
                 <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-full mt-2 w-72 opacity-0 group-hover:opacity-100 transition-opacity">
                   <span className="block rounded-lg border bg-white shadow-sm px-3 py-2 text-xs text-gray-700">
-                    <b>Source :</b> vPIC (NHTSA – U.S. DOT). Données fournies par
-                    les constructeurs; certains champs peuvent être absents selon le VIN.
+                    <b>Source :</b> vPIC (NHTSA – U.S. DOT).
                   </span>
                 </span>
               </span>
             </div>
-
             <p className="text-sm text-gray-600 mt-1">
               Entre un NIV (17 caractères). Décodage automatique quand le VIN est complet.
             </p>
           </div>
-
           <span className="hidden sm:inline-flex text-xs font-medium bg-white border px-3 py-1 rounded-full text-gray-700">
             Auto (API)
           </span>
@@ -513,7 +448,6 @@ export default function OutilsPage() {
             onChange={(e) => {
               const next = e.target.value;
               setVinInput(next);
-
               if (vinResult) setVinResult(null);
               if (vinShowDetails) setVinShowDetails(false);
               if (vinError) setVinError("");
@@ -522,7 +456,6 @@ export default function OutilsPage() {
             placeholder="Ex: 1HGCM82633A004352"
             className="flex-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
           />
-
           <button
             onClick={() => decodeVin()}
             disabled={vinLoading}
@@ -539,11 +472,9 @@ export default function OutilsPage() {
         <AnimatePresence>
           {vinLoading && (
             <motion.div
-              key="vinLoading"
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.18 }}
               className="mt-3 text-sm text-gray-600"
             >
               ⏳ Décodage en cours…
@@ -554,11 +485,9 @@ export default function OutilsPage() {
         <AnimatePresence>
           {!!vinError && !vinLoading && (
             <motion.div
-              key="vinError"
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.2 }}
               className="mt-4 text-red-600 text-sm"
             >
               {vinError}
@@ -569,11 +498,9 @@ export default function OutilsPage() {
         <AnimatePresence>
           {vinResult && !vinLoading && (
             <motion.div
-              key="vinResult"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              transition={{ duration: 0.22 }}
               className="mt-4 p-4 bg-white border rounded-xl"
             >
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
@@ -581,73 +508,53 @@ export default function OutilsPage() {
                   <div className="text-sm text-gray-500 mb-1">
                     NIV: <b>{normalizeVin(vinInput)}</b>
                   </div>
-
                   <div className="text-lg font-semibold">
                     {buildVinSummary(vinResult) || "Résumé indisponible"}
                   </div>
-
-                  {!vinResult.trim && !vinResult.series && !vinResult.trim2 && (
-                    <div className="mt-1 text-xs text-gray-500">
-                      Note: la “version/trim” n’est pas toujours fournie par le décodage VIN.
-                    </div>
-                  )}
                 </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setVinShowDetails((v) => !v)}
-                    className="text-sm border rounded-lg px-3 py-2 hover:bg-gray-50 transition font-semibold"
-                  >
-                    {vinShowDetails ? "Masquer les détails" : "Voir les détails"}
-                  </button>
-                </div>
+                <button
+                  onClick={() => setVinShowDetails((v) => !v)}
+                  className="text-sm border rounded-lg px-3 py-2 hover:bg-gray-50 transition font-semibold"
+                >
+                  {vinShowDetails ? "Masquer les détails" : "Voir les détails"}
+                </button>
               </div>
 
               <AnimatePresence>
                 {vinShowDetails && (
                   <motion.div
-                    key="vinDetails"
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 8 }}
-                    transition={{ duration: 0.18 }}
                     className="mt-4"
                   >
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       <DetailRow label="Année" value={vinResult.modelYear} />
                       <DetailRow label="Marque" value={vinResult.make} />
                       <DetailRow label="Modèle" value={vinResult.model} />
-
                       <DetailRow label="Trim / Version" value={vinResult.trim} />
                       <DetailRow label="Série" value={vinResult.series} />
                       <DetailRow label="Trim2" value={vinResult.trim2} />
-
                       <DetailRow label="Type de véhicule" value={vinResult.vehicleType} />
                       <DetailRow label="Classe de carrosserie" value={vinResult.bodyClass} />
                       <DetailRow label="Portes" value={vinResult.doors} />
-
-                      <DetailRow label="DriveType (AWD/FWD/RWD/4WD/2WD)" value={vinResult.driveType} />
+                      <DetailRow label="DriveType" value={vinResult.driveType} />
                       <DetailRow label="Carburant (principal)" value={vinResult.fuelTypePrimary} />
                       <DetailRow
                         label="Moteur"
                         value={[
                           vinResult.engineCylinders ? `${vinResult.engineCylinders} cyl` : "",
                           vinResult.displacementL ? `${vinResult.displacementL} L` : "",
-                        ]
-                          .filter(Boolean)
-                          .join(" • ")}
+                        ].filter(Boolean).join(" • ")}
                       />
-
                       <DetailRow label="Transmission (style)" value={vinResult.transmissionStyle} />
                       <DetailRow label="Transmission (vitesses)" value={vinResult.transmissionSpeeds} />
-
                       <DetailRow label="Usine (pays)" value={vinResult.plantCountry} />
                       <DetailRow label="Usine (ville)" value={vinResult.plantCity} />
                       <DetailRow label="Usine (état/province)" value={vinResult.plantState} />
                     </div>
-
                     <div className="mt-3 text-xs text-gray-500">
-                      Certains champs peuvent être vides, tout dépend des informations disponibles pour ce VIN.
+                      Certains champs peuvent être vides selon les informations disponibles.
                     </div>
                   </motion.div>
                 )}
@@ -655,6 +562,33 @@ export default function OutilsPage() {
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
+
+      {/* =========================
+          ✅ Tool 3 — Liste des codes d'agence (version discrète)
+          ========================= */}
+      <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold">Liste des codes d'agence</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Accède à la liste complète et à jour des codes d'agence.
+            </p>
+          </div>
+          <span className="hidden sm:inline-flex text-xs font-medium bg-white border px-3 py-1 rounded-full text-gray-700">
+            SharePoint
+          </span>
+        </div>
+
+        <button
+          onClick={() => window.open(
+            "https://lemieuxassurance.sharepoint.com/:x:/s/AssurancedesParticuliers/IQD8BnLgpBioQolYeKsS37jRATym_KyNd4IF_sXm3KOrIDs?e=7g9A2w",
+            "_blank"
+          )}
+          className="mt-5 w-full sm:w-auto px-6 py-3 bg-white border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 font-medium rounded-xl transition flex items-center justify-center gap-2 text-base"
+        >
+          Ouvrir la liste des codes d'agence (Excel)
+        </button>
       </div>
     </motion.div>
   );
