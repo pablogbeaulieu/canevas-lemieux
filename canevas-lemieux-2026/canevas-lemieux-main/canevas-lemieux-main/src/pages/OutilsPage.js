@@ -18,9 +18,9 @@ export default function OutilsPage() {
   }, []);
 
   const buildMapsUrl = useCallback((origin, destination) => {
-    const encodedOrigin = encodeURIComponent(origin || "");
-    const encodedDestination = encodeURIComponent(destination || "");
-    return `https://can01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.google.com%2Fmaps%2Fdir%2F%3Fapi%3D1%26origin%3D%24&data=05%7C02%7Cpablo.beaulieu%40lemieuxassurances.com%7Ceefe968f2b08491fdd5e08de9a4015c9%7C5040b6819ccd49519a6c9d4351d06190%7C0%7C0%7C639117797220999053%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=%2BdGopbKLHKP41gIlc2f4EeGdMwMa8AZ13%2BgNd1YodSQ%3D&reserved=0{encodedOrigin}&destination=${encodedDestination}`;
+    return `https://can01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.google.com%2Fmaps%2Fdir%2F%3Fapi%3D1%26origin%3D%24&data=05%7C02%7Cpablo.beaulieu%40lemieuxassurances.com%7C9b5272907d804618e5b808de9a40b5f3%7C5040b6819ccd49519a6c9d4351d06190%7C0%7C0%7C639117799897826062%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=8KUomrf6FRorNuUaNuB7zdGy6sT%2Fzi7ZDVj5su%2F%2BzpE%3D&reserved=0{encodeURIComponent(
+      origin || ""
+    )}&destination=${encodeURIComponent(destination || "")}`;
   }, []);
 
   const originForMaps = useCallback(() => {
@@ -180,7 +180,7 @@ export default function OutilsPage() {
       }
 
       try {
-        const url = `https://can01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fvpic.nhtsa.dot.gov%2Fapi%2Fvehicles%2FDecodeVinValues%2F%24&data=05%7C02%7Cpablo.beaulieu%40lemieuxassurances.com%7Ceefe968f2b08491fdd5e08de9a4015c9%7C5040b6819ccd49519a6c9d4351d06190%7C0%7C0%7C639117797221035859%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=aeK1OqiHlQUNEH48%2FXfY3paBMSsiQr14bNbgIcch8ac%3D&reserved=0{vin}?format=json`;
+        const url = `https://can01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fvpic.nhtsa.dot.gov%2Fapi%2Fvehicles%2FDecodeVinValues%2F%24&data=05%7C02%7Cpablo.beaulieu%40lemieuxassurances.com%7C9b5272907d804618e5b808de9a40b5f3%7C5040b6819ccd49519a6c9d4351d06190%7C0%7C0%7C639117799897853473%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=wNQ2YauZjIUoxX1ydLV1unrVbVFdvNDalJ%2BnNszIBm8%3D&reserved=0{vin}?format=json`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("Network error");
         const json = await res.json();
@@ -287,7 +287,7 @@ export default function OutilsPage() {
   // =========================
   const _openAgencyCodes = () => {
     window.open(
-      "https://lemieuxassurance.sharepoint.com/:x:/s/AssurancedesParticuliers/IQD8BnLgpBioQolYeKsS37jRATym_KyNd4IF_sXm3KOrIDs?e=7g9A2w&xsdata=MDV8MDJ8cGFibG8uYmVhdWxpZXVAbGVtaWV1eGFzc3VyYW5jZXMuY29tfGVlZmU5NjhmMmIwODQ5MWZkZDVlMDhkZTlhNDAxNWM5fDUwNDBiNjgxOWNjZDQ5NTE5YTZjOWQ0MzUxZDA2MTkwfDB8MHw2MzkxMTc3OTcyMjEwNjM1NjR8VW5rbm93bnxUV0ZwYkdac2IzZDhleUpGYlhCMGVVMWhjR2tpT25SeWRXVXNJbFlpT2lJd0xqQXVNREF3TUNJc0lsQWlPaUpYYVc0ek1pSXNJa0ZPSWpvaVRXRnBiQ0lzSWxkVUlqb3lmUT09fDB8fHw%3d&sdata=RVhXcFphaUMzc0laeUdYMWJOUkZrSHJYQU83Wk1PeEVVUU5RaHFtQUxwST0%3d",
+      "https://lemieuxassurance.sharepoint.com/:x:/s/AssurancedesParticuliers/IQD8BnLgpBioQolYeKsS37jRATym_KyNd4IF_sXm3KOrIDs?e=7g9A2w&xsdata=MDV8MDJ8cGFibG8uYmVhdWxpZXVAbGVtaWV1eGFzc3VyYW5jZXMuY29tfDliNTI3MjkwN2Q4MDQ2MThlNWI4MDhkZTlhNDBiNWYzfDUwNDBiNjgxOWNjZDQ5NTE5YTZjOWQ0MzUxZDA2MTkwfDB8MHw2MzkxMTc3OTk4OTc4NzIyOTN8VW5rbm93bnxUV0ZwYkdac2IzZDhleUpGYlhCMGVVMWhjR2tpT25SeWRXVXNJbFlpT2lJd0xqQXVNREF3TUNJc0lsQWlPaUpYYVc0ek1pSXNJa0ZPSWpvaVRXRnBiQ0lzSWxkVUlqb3lmUT09fDB8fHw%3d&sdata=dkM4UXIxMnJ3UXh3Y0xETmtmVC8zUS9rMjc5VStEajYxR3BTSUZQZlFLZz0%3d",
       "_blank"
     );
   };
