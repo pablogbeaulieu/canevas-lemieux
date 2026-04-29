@@ -18,7 +18,7 @@ export default function OutilsPage() {
   }, []);
 
   const buildMapsUrl = useCallback((origin, destination) => {
-    return `https://can01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.google.com%2Fmaps%2Fdir%2F%3Fapi%3D1%26origin%3D%24&data=05%7C02%7Cpablo.beaulieu%40lemieuxassurances.com%7C9b5272907d804618e5b808de9a40b5f3%7C5040b6819ccd49519a6c9d4351d06190%7C0%7C0%7C639117799897826062%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=8KUomrf6FRorNuUaNuB7zdGy6sT%2Fzi7ZDVj5su%2F%2BzpE%3D&reserved=0{encodeURIComponent(
+    return `https://can01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.google.com%2Fmaps%2Fdir%2F%3Fapi%3D1%26origin%3D%24&data=05%7C02%7Cpablo.beaulieu%40lemieuxassurances.com%7Ca582c2c50a244aeed14308de9fb791e2%7C5040b6819ccd49519a6c9d4351d06190%7C0%7C0%7C639123808398190346%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=lbcNpZ5%2FG6tNJAcq8zHFXR64joXiCcnKOQPAC6Ib2mM%3D&reserved=0{encodeURIComponent(
       origin || ""
     )}&destination=${encodeURIComponent(destination || "")}`;
   }, []);
@@ -180,7 +180,7 @@ export default function OutilsPage() {
       }
 
       try {
-        const url = `https://can01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fvpic.nhtsa.dot.gov%2Fapi%2Fvehicles%2FDecodeVinValues%2F%24&data=05%7C02%7Cpablo.beaulieu%40lemieuxassurances.com%7C9b5272907d804618e5b808de9a40b5f3%7C5040b6819ccd49519a6c9d4351d06190%7C0%7C0%7C639117799897853473%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=wNQ2YauZjIUoxX1ydLV1unrVbVFdvNDalJ%2BnNszIBm8%3D&reserved=0{vin}?format=json`;
+        const url = `https://can01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fvpic.nhtsa.dot.gov%2Fapi%2Fvehicles%2FDecodeVinValues%2F%24&data=05%7C02%7Cpablo.beaulieu%40lemieuxassurances.com%7Ca582c2c50a244aeed14308de9fb791e2%7C5040b6819ccd49519a6c9d4351d06190%7C0%7C0%7C639123808398256410%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=ccrUqwDtyP65MO5R4BKkdTviDuhrHnKLpUEe0NZJcNI%3D&reserved=0{vin}?format=json`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("Network error");
         const json = await res.json();
@@ -287,15 +287,29 @@ export default function OutilsPage() {
   // =========================
   const _openAgencyCodes = () => {
     window.open(
-      "https://lemieuxassurance.sharepoint.com/:x:/s/AssurancedesParticuliers/IQD8BnLgpBioQolYeKsS37jRATym_KyNd4IF_sXm3KOrIDs?e=7g9A2w&xsdata=MDV8MDJ8cGFibG8uYmVhdWxpZXVAbGVtaWV1eGFzc3VyYW5jZXMuY29tfDliNTI3MjkwN2Q4MDQ2MThlNWI4MDhkZTlhNDBiNWYzfDUwNDBiNjgxOWNjZDQ5NTE5YTZjOWQ0MzUxZDA2MTkwfDB8MHw2MzkxMTc3OTk4OTc4NzIyOTN8VW5rbm93bnxUV0ZwYkdac2IzZDhleUpGYlhCMGVVMWhjR2tpT25SeWRXVXNJbFlpT2lJd0xqQXVNREF3TUNJc0lsQWlPaUpYYVc0ek1pSXNJa0ZPSWpvaVRXRnBiQ0lzSWxkVUlqb3lmUT09fDB8fHw%3d&sdata=dkM4UXIxMnJ3UXh3Y0xETmtmVC8zUS9rMjc5VStEajYxR3BTSUZQZlFLZz0%3d",
+      "https://lemieuxassurance.sharepoint.com/:x:/s/AssurancedesParticuliers/IQD8BnLgpBioQolYeKsS37jRATym_KyNd4IF_sXm3KOrIDs?e=7g9A2w&xsdata=MDV8MDJ8cGFibG8uYmVhdWxpZXVAbGVtaWV1eGFzc3VyYW5jZXMuY29tfGE1ODJjMmM1MGEyNDRhZWVkMTQzMDhkZTlmYjc5MWUyfDUwNDBiNjgxOWNjZDQ5NTE5YTZjOWQ0MzUxZDA2MTkwfDB8MHw2MzkxMjM4MDgzOTgzMTI4MzF8VW5rbm93bnxUV0ZwYkdac2IzZDhleUpGYlhCMGVVMWhjR2tpT25SeWRXVXNJbFlpT2lJd0xqQXVNREF3TUNJc0lsQWlPaUpYYVc0ek1pSXNJa0ZPSWpvaVRXRnBiQ0lzSWxkVUlqb3lmUT09fDB8fHw%3d&sdata=bEZQTGM2Y2V3R2s2UUkxeEJ1UktlemNKOFNvVzBIaXJQc2hMM3JObVAvYz0%3d",
       "_blank"
     );
   };
 
   // =========================
+  // ✅ Tool 4 — Modalités de paiements des assureurs (PDF)
+  // =========================
+  const _openPaymentTerms = () => {
+    const filePath = "/documents/Modalites_Paiements_Assureurs.pdf";
+    const link = document.createElement("a");
+    link.href = filePath;
+    link.download = "Modalites_Paiements_Assureurs.pdf";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // =========================
   // UI Meta
   // =========================
-  const toolCount = 3;
+  const toolCount = 4;   // Mis à jour
+
   const helpText =
     "Entre les 3 premiers caractères du code postal (ex: G1P). La recherche démarre automatiquement.";
 
@@ -324,7 +338,7 @@ export default function OutilsPage() {
         </div>
       </div>
 
-      {/* Tool 1 — Succursale */}
+      {/* Tool 1 — Succursale (inchangé) */}
       <div className="border rounded-xl p-5 bg-gray-50 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -414,7 +428,7 @@ export default function OutilsPage() {
         </AnimatePresence>
       </div>
 
-      {/* Tool 2 — Décoder NIV (VIN) */}
+      {/* Tool 2 — Décoder NIV (VIN) (inchangé) */}
       <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -562,7 +576,7 @@ export default function OutilsPage() {
         </AnimatePresence>
       </div>
 
-      {/* Tool 3 — Liste des codes d'agence */}
+      {/* Tool 3 — Liste des codes d'agence (inchangé) */}
       <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -581,6 +595,28 @@ export default function OutilsPage() {
           className="mt-5 w-full sm:w-auto px-6 py-3 bg-white border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 font-medium rounded-xl transition flex items-center justify-center gap-2 text-base"
         >
           Ouvrir la liste des codes d'agence (Excel)
+        </button>
+      </div>
+
+      {/* ====================== NOUVEAU : Tool 4 — Modalités de paiements des assureurs ====================== */}
+      <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold">Modalités de paiement des assureurs</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Télécharge le document officiel des modalités et délais de paiement par assureur.
+            </p>
+          </div>
+          <span className="hidden sm:inline-flex text-xs font-medium bg-white border px-3 py-1 rounded-full text-gray-700">
+            Document
+          </span>
+        </div>
+
+        <button
+          onClick={_openPaymentTerms}
+          className="mt-5 w-full sm:w-auto px-6 py-3 bg-white border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 font-medium rounded-xl transition flex items-center justify-center gap-2 text-base"
+        >
+          Télécharger Modalités de paiement des assureurs (PDF)
         </button>
       </div>
     </motion.div>

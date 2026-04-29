@@ -22,6 +22,10 @@ function Canevas({ sector = "particulier" }) {
   const [authorizedPerson, setAuthorizedPerson] = useState("");
   const [procurationDate, setProcurationDate] = useState("");
 
+  // ✅ NOUVEAUX ÉTATS POUR "Refus d'augmenter le CVA"
+  const [isRefusCVAModalOpen, setIsRefusCVAModalOpen] = useState(false);
+  const [refusCVAName, setRefusCVAName] = useState("");
+
   // ✅ Recherche
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -95,10 +99,16 @@ function Canevas({ sector = "particulier" }) {
     return category === "ANNU" && subCategory === "TOUS" && title.includes("Annulation");
   };
 
-  // ✅ NOUVELLE FONCTION : Détecte le canevas "Procuration verbale"
+  // ✅ Détecte le canevas "Procuration verbale"
   const isProcurationVerbaleCanevas = (category, subCategory, title) => {
-    return title === "Procuration verbale" || 
+    return title === "Procuration verbale" ||
            title.toLowerCase().includes("procuration verbale");
+  };
+
+  // ✅ Détecte le canevas "Refus d'augmenter le CVA"
+  const isRefusCVACanevas = (category, subCategory, title) => {
+    return title === "Refus d'augmenter le CVA" ||
+           title.toLowerCase().includes("refus d'augmenter le cva");
   };
 
   // ====================== TÉLÉCHARGEMENT FICHIERS BOÎTE À OUTILS AGRICOLE ======================
@@ -155,18 +165,29 @@ function Canevas({ sector = "particulier" }) {
     }
 
     // ==================== Questionnaire Agricole ====================
-    if (category === "AGRICOLE" && 
-        subCategory === "Questions légales" && 
+    if (category === "AGRICOLE" &&
+        subCategory === "Questions légales" &&
         title === "Questionnaire") {
       setShowLegalModal(true);
       return;
     }
 
-    // ==================== NOUVEAU : Procuration Verbale ====================
+    // ==================== Procuration Verbale ====================
     if (isProcurationVerbaleCanevas(category, subCategory, title)) {
       setIsProcurationModalOpen(true);
-      
-      // Incrément du compteur d'utilisation
+      if (item?.id) {
+        try {
+          await supabase.rpc("increment_canevas_usage", { p_id: item.id });
+        } catch (e) {
+          console.warn("Erreur increment usage_count:", e);
+        }
+      }
+      return;
+    }
+
+    // ==================== Refus d'augmenter le CVA ====================
+    if (isRefusCVACanevas(category, subCategory, title)) {
+      setIsRefusCVAModalOpen(true);
       if (item?.id) {
         try {
           await supabase.rpc("increment_canevas_usage", { p_id: item.id });
@@ -197,7 +218,6 @@ function Canevas({ sector = "particulier" }) {
     if (isCancellationCanevas(category, subCategory, title)) {
       setCopiedMessage("Canevas copié !");
       setTimeout(() => setCopiedMessage(""), 2000);
-
       setSelectedCanevas({ title, content });
       setIsScriptModalOpen(true);
     } else {
@@ -217,7 +237,7 @@ Date de résiliation: ${cancellationDate}
 
 Bonjour ${clientName},
 
-À la suite des instructions reçues de votre part, nous vous confirmons que la police ci-haut mentionnée a été résiliée. 
+À la suite des instructions reçues de votre part, nous vous confirmons que la police ci-haut mentionnée a été résiliée.
 
 Par conséquent, nous vous avisons que nous mettons fin à notre mandat d’agir pour vous à titre de courtier en assurance de dommages pour la police mentionnée en titre.
 Soyez ainsi informé(e) que nous ne ferons aucune démarche auprès d’autres assureurs pour vous procurer une autre police d’assurance.
@@ -227,13 +247,19 @@ Dans l’intervalle, et si besoin était, nous demeurons disponibles.
 Bien à vous,`;
   };
 
-  // ✅ NOUVELLE FONCTION : Génère le script de procuration en temps réel
+  // ✅ Génère le script de procuration en temps réel
   const generateProcurationScript = () => {
-    const date = procurationDate 
-      ? new Date(procurationDate).toLocaleDateString('fr-CA') 
+    const date = procurationDate
+      ? new Date(procurationDate).toLocaleDateString('fr-CA')
       : new Date().toLocaleDateString('fr-CA');
 
     return `Je ${assureName} autorise ${authorizedPerson} à transiger dans mon dossier. Obtenir des informations, faire des modifications et effectuer des transactions concernant mon dossier automobile et habitation. Cette autorisation est valide jusqu'à avis contraire et débute le ${date}.`;
+  };
+
+  // ✅ Génère le texte pour "Refus d'augmenter le CVA"
+  const generateRefusCVAScript = () => {
+    const name = refusCVAName.trim() ? refusCVAName.trim() : "NOM DE L'ASSURÉ";
+    return `Je ${name}, reconnais que mon courtier n'a pas la responsabilité ni la formation nécessaire pour déterminer les valeurs assurables de mes biens et qu'il m'a conseillé de consulter un professionnel de l'évaluation de façon à déterminer avec précision les montants d'assurance adéquats. En cas de sinistre, je reconnais que le courtier ne peut donc pas être tenu responsable des conséquences de tout écart entre les montants d'assurance de ma police actuelle et la valeur réelle de mes biens, selon un professionnel de l'évaluation ou tout autre expert.`;
   };
 
   const pageTitle =
@@ -421,15 +447,15 @@ Bien à vous,`;
 
             <div className="p-6 space-y-6 text-gray-800 leading-relaxed">
               <div>
-                1. Afin de permettre à l’assureur d’accorder sa meilleure offre, 
-                l’autorisez-vous à obtenir vos informations de crédit auprès des agences 
-                d’évaluation du crédit ? Votre assureur pourra consulter ces agences pour 
+                1. Afin de permettre à l’assureur d’accorder sa meilleure offre,
+                l’autorisez-vous à obtenir vos informations de crédit auprès des agences
+                d’évaluation du crédit ? Votre assureur pourra consulter ces agences pour
                 faire des mises à jour lors de vos renouvellements ou modifications.
               </div>
 
               <div>
-                2. Donnez-vous l’autorisation aux assureurs de consulter votre dossier 
-                de sinistres au fichier centrale des sinistres automobile ainsi que 
+                2. Donnez-vous l’autorisation aux assureurs de consulter votre dossier
+                de sinistres au fichier centrale des sinistres automobile ainsi que
                 tous les conducteurs mentionnés au contrat ?
               </div>
             </div>
@@ -461,9 +487,8 @@ Bien à vous,`;
       transition={{ duration: prefersReducedMotion ? 0 : 0.22 }}
       className="p-6 bg-white"
     >
-      {/* Header + recherche (inchangé) */}
+      {/* Header + recherche */}
       <div className="mb-6 rounded-xl bg-gradient-to-r from-blue-700 to-blue-900 text-white p-5 shadow-sm">
-        {/* ... tout le header identique ... */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-2xl sm:text-3xl font-bold">{pageTitle}</h1>
@@ -556,7 +581,7 @@ Bien à vous,`;
         )}
       </AnimatePresence>
 
-      {/* Mode recherche et affichage normal (inchangé) */}
+      {/* Mode recherche et affichage normal */}
       <AnimatePresence mode="wait">
         {searchActive ? (
           <motion.div
@@ -621,7 +646,6 @@ Bien à vous,`;
             animate="show"
             exit="exit"
           >
-            {/* Catégories, sous-catégories et canevas (inchangés) */}
             <div className="mt-4">
               <h2 className="text-xl font-semibold">Catégories</h2>
               <div className="flex flex-wrap gap-2 mt-2">
@@ -714,7 +738,7 @@ Bien à vous,`;
                         >
                           {isTableauComparatif ? (
                             <a
-                              href="https://lemieuxassurance-my.sharepoint.com/:x:/g/personal/pablo_beaulieu_lemieuxassurances_com/EdwMKQ9SzOtLv69Ny-a8jNYBpP9TPgCYxqom8spHJRlAIA?e=HMIfTI&xsdata=MDV8MDJ8cGFibG8uYmVhdWxpZXVAbGVtaWV1eGFzc3VyYW5jZXMuY29tfDViMGVmN2FkMmQxNzQ5MjcwMWMxMDhkZTlhM2JkNWI5fDUwNDBiNjgxOWNjZDQ5NTE5YTZjOWQ0MzUxZDA2MTkwfDB8MHw2MzkxMTc3Nzg5NzI0ODg4NTl8VW5rbm93bnxUV0ZwYkdac2IzZDhleUpGYlhCMGVVMWhjR2tpT25SeWRXVXNJbFlpT2lJd0xqQXVNREF3TUNJc0lsQWlPaUpYYVc0ek1pSXNJa0ZPSWpvaVRXRnBiQ0lzSWxkVUlqb3lmUT09fDB8fHw%3d&sdata=Rk9ibXl2RlZXY0VjNHBBNW84WlpPN1BRVVBBKy9CNVN2OHB6WnlBcGFUST0%3d"
+                              href="https://lemieuxassurance-my.sharepoint.com/:x:/g/personal/pablo_beaulieu_lemieuxassurances_com/EdwMKQ9SzOtLv69Ny-a8jNYBpP9TPgCYxqom8spHJRlAIA?e=HMIfTI&xsdata=MDV8MDJ8cGFibG8uYmVhdWxpZXVAbGVtaWV1eGFzc3VyYW5jZXMuY29tfDQ3YjkwNThjMDM4ZDQ2OGMwMjg1MDhkZTlmYjQ1NjFlfDUwNDBiNjgxOWNjZDQ5NTE5YTZjOWQ0MzUxZDA2MTkwfDB8MHw2MzkxMjM3OTQwODg4Njg5NDZ8VW5rbm93bnxUV0ZwYkdac2IzZDhleUpGYlhCMGVVMWhjR2tpT25SeWRXVXNJbFlpT2lJd0xqQXVNREF3TUNJc0lsQWlPaUpYYVc0ek1pSXNJa0ZPSWpvaVRXRnBiQ0lzSWxkVUlqb3lmUT09fDB8fHw%3d&sdata=TEtFY2h3MDFjTkk4dkJIdjlUcmg0dGlsdVNlRkdJeEN0RU4vdTZJQXgrMD0%3d"
                               target="_blank"
                               rel="noopener noreferrer"
                               className="block w-full text-left text-base sm:text-lg font-semibold p-3 border rounded-xl bg-blue-50 hover:bg-blue-100 hover:text-blue-900 transition hover:shadow-sm hover:-translate-y-[1px] active:scale-[0.99]"
@@ -742,7 +766,7 @@ Bien à vous,`;
         )}
       </AnimatePresence>
 
-      {/* Modal script annulation (inchangé) */}
+      {/* Modal script annulation */}
       <AnimatePresence>
         {isScriptModalOpen && selectedCanevas && (
           <motion.div
@@ -832,7 +856,7 @@ Bien à vous,`;
         )}
       </AnimatePresence>
 
-      {/* ====================== NOUVELLE MODAL PROCURATION VERBALE ====================== */}
+      {/* Modal Procuration Verbale */}
       <AnimatePresence>
         {isProcurationModalOpen && (
           <motion.div
@@ -913,10 +937,81 @@ Bien à vous,`;
                 <button
                   onClick={() => {
                     setIsProcurationModalOpen(false);
-                    // Réinitialiser les champs
                     setAssureName("");
                     setAuthorizedPerson("");
                     setProcurationDate("");
+                  }}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 rounded-xl transition"
+                >
+                  Fermer
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ====================== MODAL REFUS D'AUGMENTER LE CVA ====================== */}
+      <AnimatePresence>
+        {isRefusCVAModalOpen && (
+          <motion.div
+            key="refusCVAModal"
+            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.16 }}
+            className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4"
+          >
+            <motion.div
+              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 10, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 10, scale: 0.98 }}
+              transition={{ duration: prefersReducedMotion ? 0 : 0.18, ease: "easeOut" }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden"
+            >
+              <div className="px-6 py-5 border-b bg-gray-50">
+                <h2 className="text-2xl font-semibold text-gray-900">Refus d'augmenter le CVA</h2>
+                <p className="text-sm text-gray-500 mt-1">Remplissez le nom de l’assuré</p>
+              </div>
+
+              <div className="p-6 space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom de l’assuré</label>
+                  <input
+                    type="text"
+                    placeholder="Nom complet de l'assuré"
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={refusCVAName}
+                    onChange={(e) => setRefusCVAName(e.target.value)}
+                  />
+                </div>
+
+                <div className="pt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Texte à copier</label>
+                  <textarea
+                    className="w-full p-4 border border-gray-300 rounded-2xl font-medium text-gray-800 leading-relaxed resize-y min-h-[180px]"
+                    readOnly
+                    value={generateRefusCVAScript()}
+                  />
+                </div>
+              </div>
+
+              <div className="border-t px-6 py-4 flex gap-3 bg-gray-50">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(generateRefusCVAScript());
+                    setCopiedMessage("Texte copié !");
+                    setTimeout(() => setCopiedMessage(""), 2000);
+                  }}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 rounded-xl transition"
+                >
+                  Copier le texte
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsRefusCVAModalOpen(false);
+                    setRefusCVAName("");
                   }}
                   className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 rounded-xl transition"
                 >
