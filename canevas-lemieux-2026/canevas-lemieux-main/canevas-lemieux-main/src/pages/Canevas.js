@@ -147,10 +147,9 @@ const isPrequalificationCanevas = (category, subCategory, title) => {
   };
 
   
-// ✅ Détecte le canevas "Paiement effectué avec assuré"
+// ✅ Détecte le canevas "Équipe de facturation"
 const isPaiementEffectueCanevas = (category, subCategory, title) => {
-  return title === "Paiement effectué avec assuré" ||
-         title.toLowerCase().includes("paiement effectué avec assuré");
+  return title === "Équipe de facturation";
 };
 
 
@@ -1208,7 +1207,7 @@ ease: "easeOut",
 }}
 className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
 > <div className="px-6 py-5 border-b bg-gray-50"> <h2 className="text-2xl font-semibold text-gray-900">
-Paiement effectué avec assuré </h2> </div>
+Équipe de facturation </h2> </div>
 
 
     <div className="p-6 space-y-4">
