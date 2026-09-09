@@ -181,8 +181,8 @@ export default function OutilsPage() {
         return;
       }
 
-      try {
-        const url = `https://can01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fvpic.nhtsa.dot.gov%2Fapi%2Fvehicles%2FDecodeVinValues%2F%24&data=05%7C02%7Cpablo.beaulieu%40lemieuxassurances.com%7Ca582c2c50a244aeed14308de9fb791e2%7C5040b6819ccd49519a6c9d4351d06190%7C0%7C0%7C639123808398256410%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=ccrUqwDtyP65MO5R4BKkdTviDuhrHnKLpUEe0NZJcNI%3D&reserved=0{vin}?format=json`;
+try {
+        const url = `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${vin}?format=json`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("Network error");
         const json = await res.json();
