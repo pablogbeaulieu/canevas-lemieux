@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react"; import { supabase } from "../api"; import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { supabase } from "../api";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function OutilsPage() {
   // =========================
@@ -306,9 +308,24 @@ export default function OutilsPage() {
   };
 
   // =========================
+  // ✅ Tool 5 — Aide-mémoire Honoraires
+  // =========================
+  const _openAideMemoire = () => {
+    // Si l'extension de ton fichier est .pdf, laisse tel quel.
+    // Si c'est un docx, assure-toi de changer l'extension ci-dessous.
+    const filePath = "/documents/Aide_Memoire_Honoraires.pdf"; 
+    const link = document.createElement("a");
+    link.href = filePath;
+    link.download = "Aide_Memoire_Honoraires.pdf";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // =========================
   // UI Meta
   // =========================
-  const toolCount = 4;   // Mis à jour
+  const toolCount = 5;   // Mis à jour à 5
 
   const helpText =
     "Entre les 3 premiers caractères du code postal (ex: G1P). La recherche démarre automatiquement.";
@@ -338,7 +355,7 @@ export default function OutilsPage() {
         </div>
       </div>
 
-      {/* Tool 1 — Succursale (inchangé) */}
+      {/* Tool 1 — Succursale */}
       <div className="border rounded-xl p-5 bg-gray-50 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -428,7 +445,7 @@ export default function OutilsPage() {
         </AnimatePresence>
       </div>
 
-      {/* Tool 2 — Décoder NIV (VIN) (inchangé) */}
+      {/* Tool 2 — Décoder NIV (VIN) */}
       <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -576,7 +593,7 @@ export default function OutilsPage() {
         </AnimatePresence>
       </div>
 
-      {/* Tool 3 — Liste des codes d'agence (inchangé) */}
+      {/* Tool 3 — Liste des codes d'agence */}
       <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -598,7 +615,7 @@ export default function OutilsPage() {
         </button>
       </div>
 
-      {/* ====================== NOUVEAU : Tool 4 — Modalités de paiements des assureurs ====================== */}
+      {/* Tool 4 — Modalités de paiements des assureurs */}
       <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -619,6 +636,29 @@ export default function OutilsPage() {
           Télécharger Modalités de paiement des assureurs (PDF)
         </button>
       </div>
+
+      {/* ====================== NOUVEAU : Tool 5 — Aide-mémoire Honoraires ====================== */}
+      <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold">Aide-mémoire - Honoraires courtier facturation directe et agence</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Télécharge l'aide-mémoire concernant la facturation et les honoraires.
+            </p>
+          </div>
+          <span className="hidden sm:inline-flex text-xs font-medium bg-white border px-3 py-1 rounded-full text-gray-700">
+            Document
+          </span>
+        </div>
+
+        <button
+          onClick={_openAideMemoire}
+          className="mt-5 w-full sm:w-auto px-6 py-3 bg-white border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 font-medium rounded-xl transition flex items-center justify-center gap-2 text-base"
+        >
+          Télécharger l'aide-mémoire (PDF)
+        </button>
+      </div>
+
     </motion.div>
   );
 }
