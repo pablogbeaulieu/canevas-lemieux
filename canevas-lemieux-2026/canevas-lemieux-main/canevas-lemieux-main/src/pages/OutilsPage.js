@@ -311,12 +311,11 @@ export default function OutilsPage() {
   // ✅ Tool 5 — Aide-mémoire Honoraires
   // =========================
   const _openAideMemoire = () => {
-    // Si l'extension de ton fichier est .pdf, laisse tel quel.
-    // Si c'est un docx, assure-toi de changer l'extension ci-dessous.
-    const filePath = "/documents/Aide_Memoire_Honoraires.pdf"; 
+    // Remplacé par le nom du fichier Excel
+    const filePath = "/documents/Aide_Memoire_Honoraires.xlsx"; 
     const link = document.createElement("a");
     link.href = filePath;
-    link.download = "Aide_Memoire_Honoraires.pdf";
+    link.download = "Aide_Memoire_Honoraires.xlsx";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -325,7 +324,7 @@ export default function OutilsPage() {
   // =========================
   // UI Meta
   // =========================
-  const toolCount = 5;   // Mis à jour à 5
+  const toolCount = 5;
 
   const helpText =
     "Entre les 3 premiers caractères du code postal (ex: G1P). La recherche démarre automatiquement.";
@@ -655,7 +654,7 @@ export default function OutilsPage() {
           onClick={_openAideMemoire}
           className="mt-5 w-full sm:w-auto px-6 py-3 bg-white border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 font-medium rounded-xl transition flex items-center justify-center gap-2 text-base"
         >
-          Télécharger l'aide-mémoire (PDF)
+          Télécharger l'aide-mémoire (Excel)
         </button>
       </div>
 
