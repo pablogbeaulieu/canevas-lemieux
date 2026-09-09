@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from "react"; 
-import { supabase } from "../api"; 
+import { useState, useEffect, useMemo, useRef } from "react";
+import { supabase } from "../api";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 function Canevas({ sector = "particulier" }) {
@@ -30,6 +30,7 @@ function Canevas({ sector = "particulier" }) {
 
   // ✅ NOUVEAUX ÉTATS POUR "Paiement effectué avec assuré"
   const [isPaiementModalOpen, setIsPaiementModalOpen] = useState(false);
+
   const [prime, setPrime] = useState("");
   const [commission, setCommission] = useState("");
   const [fraisPolice, setFraisPolice] = useState("");
@@ -376,30 +377,41 @@ Mention spéciale sur la lettre au client : ${mentionSpeciale}`;
       ? Object.keys(canevasData[selectedCategory]?.[selectedSubCategory] || {}).length
       : 0;
 
-  // ====================== CORRECTION DES ESPACES VIDES ======================
+  // ====================== CORRECTION DE L'ESPACEMENT DU CANEVAS PRÉQUALIFICATION ======================
   const generatePrequalificationScript = () => {
-    return `Questions légales - Préqualification
+    let script = `Questions légales - Préqualification\n\n`;
+    
+    script += `Autorisation crédit et FCSA : ${autorisationCredit}\n`;
+    
+    script += `Antécédents judiciaires : ${antecedentsJudiciaires}\n`;
+    if (antecedentsJudiciaires === "Oui") {
+      script += `Détails : ${detailsAntecedents}\n`;
+    }
+    
+    script += `Faillite ou proposition au consommateur : ${faillite}\n`;
+    if (faillite === "Oui") {
+      script += `Détails : ${detailsFaillite}\n`;
+    }
+    
+    script += `Refus ou annulation par un assureur : ${refusAssureur}\n`;
+    if (refusAssureur === "Oui") {
+      script += `Détails : ${detailsRefusAssureur}\n`;
+    }
+    
+    script += `Fraude ou fausse déclaration à l'assurance : ${fraudeAssurance}\n`;
+    if (fraudeAssurance === "Oui") {
+      script += `Détails : ${detailsFraude}\n`;
+    }
+    
+    script += `Réclamations dans les 6 dernières années : ${reclamations}\n`;
+    if (reclamations === "Oui") {
+      script += `Réclamations fermées : ${reclamationsFermees}\n`;
+      script += `Détails des réclamations : ${detailsReclamations}\n`;
+    }
+    
+    script += `\nNotes :\n${notes}`;
 
-Autorisation crédit et FCSA :
-${autorisationCredit}
-
-Antécédents judiciaires :
-${antecedentsJudiciaires}${antecedentsJudiciaires === "Oui" ? `\nDétails : ${detailsAntecedents}` : ""}
-
-Faillite ou proposition au consommateur :
-${faillite}${faillite === "Oui" ? `\nDétails : ${detailsFaillite}` : ""}
-
-Refus ou annulation par un assureur :
-${refusAssureur}${refusAssureur === "Oui" ? `\nDétails : ${detailsRefusAssureur}` : ""}
-
-Fraude ou fausse déclaration à l'assurance :
-${fraudeAssurance}${fraudeAssurance === "Oui" ? `\nDétails : ${detailsFraude}` : ""}
-
-Réclamations dans les 6 dernières années :
-${reclamations}${reclamations === "Oui" ? `\nRéclamations fermées : ${reclamationsFermees}\nDétails des réclamations : ${detailsReclamations}` : ""}
-
-Notes :
-${notes}`;
+    return script;
   };
 
   const resetPrequalificationForm = () => {
