@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react"; import { supabase } from "../api"; import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { supabase } from "../api";
+import { AnimatePresence, motion } from "framer-motion";
 
 export default function OutilsPage() {
   // =========================
@@ -179,8 +181,8 @@ export default function OutilsPage() {
         return;
       }
 
-      try {
-        const url = `https://can01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fvpic.nhtsa.dot.gov%2Fapi%2Fvehicles%2FDecodeVinValues%2F%24&data=05%7C02%7Cpablo.beaulieu%40lemieuxassurances.com%7Ca582c2c50a244aeed14308de9fb791e2%7C5040b6819ccd49519a6c9d4351d06190%7C0%7C0%7C639123808398256410%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=ccrUqwDtyP65MO5R4BKkdTviDuhrHnKLpUEe0NZJcNI%3D&reserved=0{vin}?format=json`;
+try {
+        const url = `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${vin}?format=json`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("Network error");
         const json = await res.json();
@@ -306,9 +308,23 @@ export default function OutilsPage() {
   };
 
   // =========================
+  // ✅ Tool 5 — Aide-mémoire Honoraires
+  // =========================
+  const _openAideMemoire = () => {
+    // Remplacé par le nom du fichier Excel
+    const filePath = "/documents/Aide_Memoire_Honoraires.xlsx"; 
+    const link = document.createElement("a");
+    link.href = filePath;
+    link.download = "Aide_Memoire_Honoraires.xlsx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // =========================
   // UI Meta
   // =========================
-  const toolCount = 4;   // Mis à jour
+  const toolCount = 5;
 
   const helpText =
     "Entre les 3 premiers caractères du code postal (ex: G1P). La recherche démarre automatiquement.";
@@ -338,7 +354,7 @@ export default function OutilsPage() {
         </div>
       </div>
 
-      {/* Tool 1 — Succursale (inchangé) */}
+      {/* Tool 1 — Succursale */}
       <div className="border rounded-xl p-5 bg-gray-50 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -428,7 +444,7 @@ export default function OutilsPage() {
         </AnimatePresence>
       </div>
 
-      {/* Tool 2 — Décoder NIV (VIN) (inchangé) */}
+      {/* Tool 2 — Décoder NIV (VIN) */}
       <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -576,7 +592,7 @@ export default function OutilsPage() {
         </AnimatePresence>
       </div>
 
-      {/* Tool 3 — Liste des codes d'agence (inchangé) */}
+      {/* Tool 3 — Liste des codes d'agence */}
       <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -598,7 +614,7 @@ export default function OutilsPage() {
         </button>
       </div>
 
-      {/* ====================== NOUVEAU : Tool 4 — Modalités de paiements des assureurs ====================== */}
+      {/* Tool 4 — Modalités de paiements des assureurs */}
       <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -619,6 +635,29 @@ export default function OutilsPage() {
           Télécharger Modalités de paiement des assureurs (PDF)
         </button>
       </div>
+
+      {/* ====================== NOUVEAU : Tool 5 — Aide-mémoire Honoraires ====================== */}
+      <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold">Aide-mémoire - Honoraires courtier facturation directe et agence</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Télécharge l'aide-mémoire concernant la facturation et les honoraires.
+            </p>
+          </div>
+          <span className="hidden sm:inline-flex text-xs font-medium bg-white border px-3 py-1 rounded-full text-gray-700">
+            Document
+          </span>
+        </div>
+
+        <button
+          onClick={_openAideMemoire}
+          className="mt-5 w-full sm:w-auto px-6 py-3 bg-white border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 font-medium rounded-xl transition flex items-center justify-center gap-2 text-base"
+        >
+          Télécharger l'aide-mémoire (Excel)
+        </button>
+      </div>
+
     </motion.div>
   );
 }

@@ -1,4 +1,6 @@
-import { useState, useEffect, useMemo, useRef } from "react"; import { supabase } from "../api"; import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { useState, useEffect, useMemo, useRef } from "react";
+import { supabase } from "../api";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 function Canevas({ sector = "particulier" }) {
   const [canevasData, setCanevasData] = useState({});
@@ -26,40 +28,38 @@ function Canevas({ sector = "particulier" }) {
   const [isRefusCVAModalOpen, setIsRefusCVAModalOpen] = useState(false);
   const [refusCVAName, setRefusCVAName] = useState("");
 
-// ✅ NOUVEAUX ÉTATS POUR "Paiement effectué avec assuré"
-const [isPaiementModalOpen, setIsPaiementModalOpen] = useState(false);
+  // ✅ NOUVEAUX ÉTATS POUR "Paiement effectué avec assuré"
+  const [isPaiementModalOpen, setIsPaiementModalOpen] = useState(false);
 
-const [prime, setPrime] = useState("");
-const [commission, setCommission] = useState("");
-const [fraisPolice, setFraisPolice] = useState("");
-const [honoraires, setHonoraires] = useState("");
-const [typeFacturation, setTypeFacturation] = useState("");
-const [participation, setParticipation] = useState("");
-const [typeEnvoi, setTypeEnvoi] = useState("");
-const [mentionSpeciale, setMentionSpeciale] = useState("");
+  const [prime, setPrime] = useState("");
+  const [commission, setCommission] = useState("");
+  const [fraisPolice, setFraisPolice] = useState("");
+  const [honoraires, setHonoraires] = useState("");
+  const [typeFacturation, setTypeFacturation] = useState("");
+  const [participation, setParticipation] = useState("");
+  const [typeEnvoi, setTypeEnvoi] = useState("");
+  const [mentionSpeciale, setMentionSpeciale] = useState("");
 
-const [isPrequalificationModalOpen, setIsPrequalificationModalOpen] = useState(false);
+  const [isPrequalificationModalOpen, setIsPrequalificationModalOpen] = useState(false);
 
-const [autorisationCredit, setAutorisationCredit] = useState("");
-const [antecedentsJudiciaires, setAntecedentsJudiciaires] = useState("");
-const [faillite, setFaillite] = useState("");
-const [refusAssureur, setRefusAssureur] = useState("");
-const [fraudeAssurance, setFraudeAssurance] = useState("");
-const [reclamations, setReclamations] = useState("");
-const [reclamationsFermees, setReclamationsFermees] = useState("");
-const [detailsReclamations, setDetailsReclamations] = useState("");
+  const [autorisationCredit, setAutorisationCredit] = useState("");
+  const [antecedentsJudiciaires, setAntecedentsJudiciaires] = useState("");
+  const [faillite, setFaillite] = useState("");
+  const [refusAssureur, setRefusAssureur] = useState("");
+  const [fraudeAssurance, setFraudeAssurance] = useState("");
+  const [reclamations, setReclamations] = useState("");
+  const [reclamationsFermees, setReclamationsFermees] = useState("");
+  const [detailsReclamations, setDetailsReclamations] = useState("");
 
-const [detailsAntecedents, setDetailsAntecedents] = useState("");
-const [detailsFaillite, setDetailsFaillite] = useState("");
-const [detailsRefusAssureur, setDetailsRefusAssureur] = useState("");
-const [detailsFraude, setDetailsFraude] = useState("");
-const [notes, setNotes] = useState("");
+  const [detailsAntecedents, setDetailsAntecedents] = useState("");
+  const [detailsFaillite, setDetailsFaillite] = useState("");
+  const [detailsRefusAssureur, setDetailsRefusAssureur] = useState("");
+  const [detailsFraude, setDetailsFraude] = useState("");
+  const [notes, setNotes] = useState("");
 
-const isPrequalificationCanevas = (category, subCategory, title) => {
-  return title === "Questions légales - Préqualification";
-};
-
-
+  const isPrequalificationCanevas = (category, subCategory, title) => {
+    return title === "Questions légales - Préqualification";
+  };
 
   // ✅ Recherche
   const [searchOpen, setSearchOpen] = useState(false);
@@ -146,12 +146,10 @@ const isPrequalificationCanevas = (category, subCategory, title) => {
            title.toLowerCase().includes("refus d'augmenter le cva");
   };
 
-  
-// ✅ Détecte le canevas "Équipe de facturation"
-const isPaiementEffectueCanevas = (category, subCategory, title) => {
-  return title === "Équipe de facturation";
-};
-
+  // ✅ Détecte le canevas "Équipe de facturation"
+  const isPaiementEffectueCanevas = (category, subCategory, title) => {
+    return title === "Équipe de facturation";
+  };
 
   // ====================== TÉLÉCHARGEMENT FICHIERS BOÎTE À OUTILS AGRICOLE ======================
   const handleDownloadAgriculturalTool = (title) => {
@@ -179,10 +177,10 @@ const isPaiementEffectueCanevas = (category, subCategory, title) => {
         fileName = "Note_Couverture_Automobile_Agricole.doc";
         filePath = "/documents/Note_Couverture_Automobile_Agricole.doc";
         break;
-        case "Règle proportionnelle":
-  fileName = "Regle_Proportionnelle.dotx";
-  filePath = "/documents/Regle_Proportionnelle.dotx";
-  break;
+      case "Règle proportionnelle":
+        fileName = "Regle_Proportionnelle.dotx";
+        filePath = "/documents/Regle_Proportionnelle.dotx";
+        break;
       default:
         alert("Fichier non trouvé pour ce canevas.");
         return;
@@ -209,9 +207,6 @@ const isPaiementEffectueCanevas = (category, subCategory, title) => {
       }
       return;
     }
-
-
-
 
     // ==================== Questionnaire Agricole ====================
     if (category === "AGRICOLE" &&
@@ -247,37 +242,36 @@ const isPaiementEffectueCanevas = (category, subCategory, title) => {
       return;
     }
 
-// ==================== Paiement effectué avec assuré ====================
-if (isPaiementEffectueCanevas(category, subCategory, title)) {
-  setIsPaiementModalOpen(true);
+    // ==================== Paiement effectué avec assuré ====================
+    if (isPaiementEffectueCanevas(category, subCategory, title)) {
+      setIsPaiementModalOpen(true);
 
-  if (item?.id) {
-    try {
-      await supabase.rpc("increment_canevas_usage", { p_id: item.id });
-    } catch (e) {
-      console.warn("Erreur increment usage_count:", e);
+      if (item?.id) {
+        try {
+          await supabase.rpc("increment_canevas_usage", { p_id: item.id });
+        } catch (e) {
+          console.warn("Erreur increment usage_count:", e);
+        }
+      }
+
+      return;
     }
-  }
 
-  return;
-}
+    if (isPrequalificationCanevas(category, subCategory, title)) {
+      setIsPrequalificationModalOpen(true);
 
+      if (item?.id) {
+        try {
+          await supabase.rpc("increment_canevas_usage", {
+            p_id: item.id,
+          });
+        } catch (e) {
+          console.warn("Erreur increment usage_count:", e);
+        }
+      }
 
-if (isPrequalificationCanevas(category, subCategory, title)) {
-  setIsPrequalificationModalOpen(true);
-
-  if (item?.id) {
-    try {
-      await supabase.rpc("increment_canevas_usage", {
-        p_id: item.id,
-      });
-    } catch (e) {
-      console.warn("Erreur increment usage_count:", e);
+      return;
     }
-  }
-
-  return;
-}
 
     // Comportement normal pour tous les autres canevas
     const content = item?.content || "";
@@ -337,16 +331,15 @@ Bien à vous,`;
     return `Je ${assureName} autorise ${authorizedPerson} à transiger dans mon dossier. Obtenir des informations, faire des modifications et effectuer des transactions concernant mon dossier automobile et habitation. Cette autorisation est valide jusqu'à avis contraire et débute le ${date}.`;
   };
 
-  
   // ✅ Génère le texte pour "Refus d'augmenter le CVA"
   const generateRefusCVAScript = () => {
     const name = refusCVAName.trim() ? refusCVAName.trim() : "NOM DE L'ASSURÉ";
     return `Je ${name}, reconnais que mon courtier n'a pas la responsabilité ni la formation nécessaire pour déterminer les valeurs assurables de mes biens et qu'il m'a conseillé de consulter un professionnel de l'évaluation de façon à déterminer avec précision les montants d'assurance adéquats. En cas de sinistre, je reconnais que le courtier ne peut donc pas être tenu responsable des conséquences de tout écart entre les montants d'assurance de ma police actuelle et la valeur réelle de mes biens, selon un professionnel de l'évaluation ou tout autre expert.`;
   };
 
-// ✅ Génère le texte pour "Paiement effectué avec assuré"
-const generatePaiementEffectueScript = () => {
-  return `À facturer svp
+  // ✅ Génère le texte pour "Paiement effectué avec assuré"
+  const generatePaiementEffectueScript = () => {
+    return `À facturer svp
 
 Prime : ${prime}
 
@@ -363,7 +356,7 @@ Police en participation : ${participation}
 Type d’envoi : ${typeEnvoi}
 
 Mention spéciale sur la lettre au client : ${mentionSpeciale}`;
-};
+  };
 
   const pageTitle =
     sector === "entreprise"
@@ -384,58 +377,59 @@ Mention spéciale sur la lettre au client : ${mentionSpeciale}`;
       ? Object.keys(canevasData[selectedCategory]?.[selectedSubCategory] || {}).length
       : 0;
 
-const generatePrequalificationScript = () => {
-  return `Questions légales - Préqualification
+  // ====================== CORRECTION DE L'ESPACEMENT DU CANEVAS PRÉQUALIFICATION ======================
+  const generatePrequalificationScript = () => {
+    let script = `Questions légales - Préqualification\n\n`;
+    
+    script += `Autorisation crédit et FCSA : ${autorisationCredit}\n`;
+    
+    script += `Antécédents judiciaires : ${antecedentsJudiciaires}\n`;
+    if (antecedentsJudiciaires === "Oui") {
+      script += `Détails : ${detailsAntecedents}\n`;
+    }
+    
+    script += `Faillite ou proposition au consommateur : ${faillite}\n`;
+    if (faillite === "Oui") {
+      script += `Détails : ${detailsFaillite}\n`;
+    }
+    
+    script += `Refus ou annulation par un assureur : ${refusAssureur}\n`;
+    if (refusAssureur === "Oui") {
+      script += `Détails : ${detailsRefusAssureur}\n`;
+    }
+    
+    script += `Fraude ou fausse déclaration à l'assurance : ${fraudeAssurance}\n`;
+    if (fraudeAssurance === "Oui") {
+      script += `Détails : ${detailsFraude}\n`;
+    }
+    
+    script += `Réclamations dans les 6 dernières années : ${reclamations}\n`;
+    if (reclamations === "Oui") {
+      script += `Réclamations fermées : ${reclamationsFermees}\n`;
+      script += `Détails des réclamations : ${detailsReclamations}\n`;
+    }
+    
+    script += `\nNotes :\n${notes}`;
 
-Autorisation crédit et FCSA :
-${autorisationCredit}
+    return script;
+  };
 
-Antécédents judiciaires :
-${antecedentsJudiciaires}
-${antecedentsJudiciaires === "Oui" ? `Détails : ${detailsAntecedents}` : ""}
-
-Faillite ou proposition au consommateur :
-${faillite}
-${faillite === "Oui" ? `Détails : ${detailsFaillite}` : ""}
-
-Refus ou annulation par un assureur :
-${refusAssureur}
-${refusAssureur === "Oui" ? `Détails : ${detailsRefusAssureur}` : ""}
-
-Fraude ou fausse déclaration à l'assurance :
-${fraudeAssurance}
-${fraudeAssurance === "Oui" ? `Détails : ${detailsFraude}` : ""}
-
-Réclamations dans les 6 dernières années :
-${reclamations}
-
-${reclamations === "Oui" ? `Réclamations fermées :
-${reclamationsFermees}` : ""}
-
-${reclamations === "Oui" ? `Détails des réclamations :
-${detailsReclamations}` : ""}
-
-Notes :
-${notes}
-`;
-};
-
-const resetPrequalificationForm = () => {
-  setAutorisationCredit("");
-  setAntecedentsJudiciaires("");
-  setFaillite("");
-  setRefusAssureur("");
-  setFraudeAssurance("");
-  setReclamations("");
-  setReclamationsFermees("");
-  setDetailsReclamations("");
-  
-  setDetailsAntecedents("");
-setDetailsFaillite("");
-setDetailsRefusAssureur("");
-setDetailsFraude("");
-setNotes("");
-};
+  const resetPrequalificationForm = () => {
+    setAutorisationCredit("");
+    setAntecedentsJudiciaires("");
+    setFaillite("");
+    setRefusAssureur("");
+    setFraudeAssurance("");
+    setReclamations("");
+    setReclamationsFermees("");
+    setDetailsReclamations("");
+    
+    setDetailsAntecedents("");
+    setDetailsFaillite("");
+    setDetailsRefusAssureur("");
+    setDetailsFraude("");
+    setNotes("");
+  };
 
   // ✅ Canevas triés: usage_count desc + title asc
   const sortedCanevasEntries = useMemo(() => {
@@ -1179,450 +1173,442 @@ setNotes("");
         )}
       </AnimatePresence>
 
-{/* ====================== MODAL PAIEMENT EFFECTUÉ AVEC ASSURÉ ====================== */} <AnimatePresence>
-{isPaiementModalOpen && (
-<motion.div
-key="paiementModal"
-initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
-animate={{ opacity: 1 }}
-exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
-transition={{ duration: prefersReducedMotion ? 0 : 0.16 }}
-className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4"
->
-<motion.div
-initial={
-prefersReducedMotion
-? { opacity: 1 }
-: { opacity: 0, y: 10, scale: 0.98 }
-}
-animate={{ opacity: 1, y: 0, scale: 1 }}
-exit={
-prefersReducedMotion
-? { opacity: 1 }
-: { opacity: 0, y: 10, scale: 0.98 }
-}
-transition={{
-duration: prefersReducedMotion ? 0 : 0.18,
-ease: "easeOut",
-}}
-className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
-> <div className="px-6 py-5 border-b bg-gray-50"> <h2 className="text-2xl font-semibold text-gray-900">
-Équipe de facturation </h2> </div>
-
-
-    <div className="p-6 space-y-4">
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Prime (sans les taxes, frais etc.)
-        </label>
-        <input
-          type="text"
-          className="w-full p-3 border border-gray-300 rounded-xl"
-          value={prime}
-          onChange={(e) => setPrime(e.target.value)}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          % de commission
-        </label>
-        <input
-          type="text"
-          className="w-full p-3 border border-gray-300 rounded-xl"
-          value={commission}
-          onChange={(e) => setCommission(e.target.value)}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Frais de police
-        </label>
-        <input
-          type="text"
-          className="w-full p-3 border border-gray-300 rounded-xl"
-          value={fraisPolice}
-          onChange={(e) => setFraisPolice(e.target.value)}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Honoraire du courtier ***les honoraires doivent minimalement respecter la grille, sinon approbation de votre directeur est demandée***
-        </label>
-        <input
-          type="text"
-          className="w-full p-3 border border-gray-300 rounded-xl"
-          value={honoraires}
-          onChange={(e) => setHonoraires(e.target.value)}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Type de facturation (agence/direct/Primaco)
-        </label>
-        <input
-          type="text"
-          className="w-full p-3 border border-gray-300 rounded-xl"
-          value={typeFacturation}
-          onChange={(e) => setTypeFacturation(e.target.value)}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Police en participation : Oui/Non. Si oui, la prime et les frais à facturer doivent être détaillés par assureur.
-        </label>
-        <input
-          type="text"
-          className="w-full p-3 border border-gray-300 rounded-xl"
-          value={participation}
-          onChange={(e) => setParticipation(e.target.value)}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Type d’envoi : par courriel OU par poste (pas les 2, l’un ou l’autre)
-        </label>
-        <input
-          type="text"
-          className="w-full p-3 border border-gray-300 rounded-xl"
-          value={typeEnvoi}
-          onChange={(e) => setTypeEnvoi(e.target.value)}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Mention spéciale sur la lettre au client (mention brève et précise svp)
-        </label>
-        <textarea
-          className="w-full p-3 border border-gray-300 rounded-xl"
-          rows="3"
-          value={mentionSpeciale}
-          onChange={(e) => setMentionSpeciale(e.target.value)}
-        />
-      </div>
-
-    </div>
-
-    <div className="border-t px-6 py-4 flex gap-3 bg-gray-50">
-
-      <button
-        onClick={() => {
-          navigator.clipboard.writeText(generatePaiementEffectueScript());
-
-          setCopiedMessage("Texte copié !");
-          setTimeout(() => setCopiedMessage(""), 2000);
-
-          setIsPaiementModalOpen(false);
-
-          setPrime("");
-          setCommission("");
-          setFraisPolice("");
-          setHonoraires("");
-          setTypeFacturation("");
-          setParticipation("");
-          setTypeEnvoi("");
-          setMentionSpeciale("");
-        }}
-        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 rounded-xl transition"
-      >
-        Copier le texte
-      </button>
-
-      <button
-        onClick={() => {
-          setIsPaiementModalOpen(false);
-
-          setPrime("");
-          setCommission("");
-          setFraisPolice("");
-          setHonoraires("");
-          setTypeFacturation("");
-          setParticipation("");
-          setTypeEnvoi("");
-          setMentionSpeciale("");
-        }}
-        className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 rounded-xl transition"
-      >
-        Fermer
-      </button>
-
-    </div>
-  </motion.div>
-</motion.div>
-
-
-)} </AnimatePresence>
-
-{/* ====================== MODAL QUESTIONS LÉGALES - PRÉQUALIFICATION ====================== */}
-<AnimatePresence>
-  {isPrequalificationModalOpen && (
-    <motion.div
-      className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4"
-    >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[85vh] overflow-y-auto">
-
-<div className="px-6 py-5 border-b bg-gray-50">
-  <h2 className="text-2xl font-semibold text-gray-900">
-    Questions légales - Préqualification
-  </h2>
-
-  <div className="mt-3 p-3 bg-amber-100 border border-amber-300 rounded-lg">
-    <p className="text-base font-semibold text-amber-900">
-      ⚠️ Obligatoire à chaque début d’appel pour une nouvelle affaire
-    </p>
-  </div>
-</div>
-
-        <div className="p-4 space-y-4">
-
-          <div>
-<label className="block text-base font-medium mb-1">
-  Pointage de crédit et FCSA : Afin de vous offrir la meilleure prime,
-  j’aurais besoin de votre autorisation pour consulter votre dossier de
-  crédit et votre dossier au FCSA. Le consentement demeure valide tant que
-  vous faites affaire avec nous, est-ce que j’ai votre autorisation ?
-</label>
-
-<p className="text-xs text-gray-500 mb-2">
-  (C’est seulement une lecture du dossier de crédit du client, aucun impact
-  sur la cote)
-</p>
-            <input
-              type="text"
-              className="w-full p-2 border rounded-lg"
-              value={autorisationCredit}
-              onChange={(e) => setAutorisationCredit(e.target.value)}
-            />
-          </div>
-
-<div>
-  <label className="block text-base font-medium mb-1">
-    Est-ce que vous ou toute personne habitant sous votre toit avez des
-    antécédents judiciaires, un dossier criminel ou êtes en attente d’un
-    procès ?
-  </label>
-
-  <select
-    className="w-full p-2 border rounded-lg"
-    value={antecedentsJudiciaires}
-    onChange={(e) => setAntecedentsJudiciaires(e.target.value)}
-  >
-    <option value="">Choisir</option>
-    <option value="Non">Non</option>
-    <option value="Oui">Oui</option>
-  </select>
-
-  {antecedentsJudiciaires === "Oui" && (
-    <textarea
-      rows="3"
-      className="w-full p-2 border rounded-lg mt-2"
-      placeholder="Précisions"
-      value={detailsAntecedents}
-      onChange={(e) => setDetailsAntecedents(e.target.value)}
-    />
-  )}
-</div>
-
-<div>
-  <label className="block text-base font-medium mb-1">
-    Est-ce que vous ou toute personne habitant sous votre toit avez-vous déjà
-    déclaré faillite ou eu une proposition au consommateur ?
-  </label>
-
-  <p className="text-xs text-gray-500 mb-2">
-    Si oui, date de libération (année et mois) et si moins de 3 ans = non standard
-  </p>
-
-  <select
-    className="w-full p-2 border rounded-lg"
-    value={faillite}
-    onChange={(e) => setFaillite(e.target.value)}
-  >
-    <option value="">Choisir</option>
-    <option value="Non">Non</option>
-    <option value="Oui">Oui</option>
-  </select>
-
-  {faillite === "Oui" && (
-    <textarea
-      rows="3"
-      className="w-full p-2 border rounded-lg mt-2"
-      placeholder="Précisions"
-      value={detailsFaillite}
-      onChange={(e) => setDetailsFaillite(e.target.value)}
-    />
-  )}
-</div>
-
-
-<div>
-  <label className="block text-base font-medium mb-1">
-    Avez-vous déjà été refusé ou annulé par un assureur, notamment pour non-paiement de prime, aggravation ou fausse déclaration ?
-  </label>
-
-  <p className="text-xs text-gray-500 mb-2">
-    Moins de 3 ans = non standard. Si annulé par un de nos assureurs : vérifier le solde antérieur.
-  </p>
-
-  <select
-    className="w-full p-2 border rounded-lg"
-    value={refusAssureur}
-    onChange={(e) => setRefusAssureur(e.target.value)}
-  >
-    <option value="">Choisir</option>
-    <option value="Non">Non</option>
-    <option value="Oui">Oui</option>
-  </select>
-
-  {refusAssureur === "Oui" && (
-    <textarea
-      rows="3"
-      className="w-full p-2 border rounded-lg mt-2"
-      placeholder="Précisions"
-      value={detailsRefusAssureur}
-      onChange={(e) => setDetailsRefusAssureur(e.target.value)}
-    />
-  )}
-</div>
-
-<div>
-  <label className="block text-base font-medium mb-1">
-    Avez-vous déjà été reconnu coupable de fraude ou fausse déclaration à l’assurance ?
-  </label>
-
-  <select
-    className="w-full p-2 border rounded-lg"
-    value={fraudeAssurance}
-    onChange={(e) => setFraudeAssurance(e.target.value)}
-  >
-    <option value="">Choisir</option>
-    <option value="Non">Non</option>
-    <option value="Oui">Oui</option>
-  </select>
-
-  {fraudeAssurance === "Oui" && (
-    <textarea
-      rows="3"
-      className="w-full p-2 border rounded-lg mt-2"
-      placeholder="Précisions"
-      value={detailsFraude}
-      onChange={(e) => setDetailsFraude(e.target.value)}
-    />
-  )}
-</div>
-
-<div>
-  <label className="block text-base font-medium mb-1">
-    Avez-vous effectué des réclamations dès les 6 dernières années auprès d’un assureur ou êtes-vous au courant d’un évènement pouvant donner lieu à une réclamation ?
-  </label>
-
-  <select
-    className="w-full p-2 border rounded-lg"
-    value={reclamations}
-    onChange={(e) => setReclamations(e.target.value)}
-  >
-    <option value="">Choisir</option>
-    <option value="Non">Non</option>
-    <option value="Oui">Oui</option>
-  </select>
-
-  {reclamations === "Oui" && (
-    <>
-      <div className="mt-3">
-        <label className="block text-base font-medium mb-1">
-          Détails des réclamations
-        </label>
-
-        <textarea
-          rows="4"
-          className="w-full p-2 border rounded-lg"
-          placeholder="Précisions"
-          value={detailsReclamations}
-          onChange={(e) => setDetailsReclamations(e.target.value)}
-        />
-      </div>
-    </>
-  )}
-</div>
-
-{reclamations === "Oui" && (
-  <div>
-    <label className="block text-base font-medium mb-1">
-      Si oui, est-ce que les réclamations sont présentement fermées ?
-    </label>
-
-    <select
-      className="w-full p-2 border rounded-lg"
-      value={reclamationsFermees}
-      onChange={(e) => setReclamationsFermees(e.target.value)}
-    >
-      <option value="">Choisir</option>
-      <option value="Oui">Oui</option>
-      <option value="Non">Non</option>
-    </select>
-  </div>
-)}
-
-<div>
-  <label className="block text-base font-medium mb-1">
-    Notes
-  </label>
-
-  <textarea
-    rows="4"
-    className="w-full p-2 border rounded-lg"
-    placeholder="Ajouter des notes au besoin..."
-    value={notes}
-    onChange={(e) => setNotes(e.target.value)}
-  />
-</div>
-
-        </div>
-
-        <div className="border-t px-6 py-4 flex gap-3 bg-gray-50">
-
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(
-                generatePrequalificationScript()
-              );
-
-              resetPrequalificationForm();
-              setIsPrequalificationModalOpen(false);
-            }}
-            className="flex-1 bg-emerald-600 text-white py-3 rounded-xl"
+      {/* ====================== MODAL PAIEMENT EFFECTUÉ AVEC ASSURÉ ====================== */} 
+      <AnimatePresence>
+        {isPaiementModalOpen && (
+          <motion.div
+            key="paiementModal"
+            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.16 }}
+            className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4"
           >
-            Copier le texte
-          </button>
+            <motion.div
+              initial={
+                prefersReducedMotion
+                  ? { opacity: 1 }
+                  : { opacity: 0, y: 10, scale: 0.98 }
+              }
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={
+                prefersReducedMotion
+                  ? { opacity: 1 }
+                  : { opacity: 0, y: 10, scale: 0.98 }
+              }
+              transition={{
+                duration: prefersReducedMotion ? 0 : 0.18,
+                ease: "easeOut",
+              }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
+            > 
+              <div className="px-6 py-5 border-b bg-gray-50"> 
+                <h2 className="text-2xl font-semibold text-gray-900">Équipe de facturation</h2> 
+              </div>
 
-          <button
-            onClick={() => {
-              resetPrequalificationForm();
-              setIsPrequalificationModalOpen(false);
-            }}
-            className="flex-1 bg-gray-200 py-3 rounded-xl"
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Prime (sans les taxes, frais etc.)
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-3 border border-gray-300 rounded-xl"
+                    value={prime}
+                    onChange={(e) => setPrime(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    % de commission
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-3 border border-gray-300 rounded-xl"
+                    value={commission}
+                    onChange={(e) => setCommission(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Frais de police
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-3 border border-gray-300 rounded-xl"
+                    value={fraisPolice}
+                    onChange={(e) => setFraisPolice(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Honoraire du courtier ***les honoraires doivent minimalement respecter la grille, sinon approbation de votre directeur est demandée***
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-3 border border-gray-300 rounded-xl"
+                    value={honoraires}
+                    onChange={(e) => setHonoraires(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Type de facturation (agence/direct/Primaco)
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-3 border border-gray-300 rounded-xl"
+                    value={typeFacturation}
+                    onChange={(e) => setTypeFacturation(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Police en participation : Oui/Non. Si oui, la prime et les frais à facturer doivent être détaillés par assureur.
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-3 border border-gray-300 rounded-xl"
+                    value={participation}
+                    onChange={(e) => setParticipation(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Type d’envoi : par courriel OU par poste (pas les 2, l’un ou l’autre)
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-3 border border-gray-300 rounded-xl"
+                    value={typeEnvoi}
+                    onChange={(e) => setTypeEnvoi(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Mention spéciale sur la lettre au client (mention brève et précise svp)
+                  </label>
+                  <textarea
+                    className="w-full p-3 border border-gray-300 rounded-xl"
+                    rows="3"
+                    value={mentionSpeciale}
+                    onChange={(e) => setMentionSpeciale(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="border-t px-6 py-4 flex gap-3 bg-gray-50">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatePaiementEffectueScript());
+
+                    setCopiedMessage("Texte copié !");
+                    setTimeout(() => setCopiedMessage(""), 2000);
+
+                    setIsPaiementModalOpen(false);
+
+                    setPrime("");
+                    setCommission("");
+                    setFraisPolice("");
+                    setHonoraires("");
+                    setTypeFacturation("");
+                    setParticipation("");
+                    setTypeEnvoi("");
+                    setMentionSpeciale("");
+                  }}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 rounded-xl transition"
+                >
+                  Copier le texte
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsPaiementModalOpen(false);
+
+                    setPrime("");
+                    setCommission("");
+                    setFraisPolice("");
+                    setHonoraires("");
+                    setTypeFacturation("");
+                    setParticipation("");
+                    setTypeEnvoi("");
+                    setMentionSpeciale("");
+                  }}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 rounded-xl transition"
+                >
+                  Fermer
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )} 
+      </AnimatePresence>
+
+      {/* ====================== MODAL QUESTIONS LÉGALES - PRÉQUALIFICATION ====================== */}
+      <AnimatePresence>
+        {isPrequalificationModalOpen && (
+          <motion.div
+            className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4"
           >
-            Fermer
-          </button>
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[85vh] overflow-y-auto">
+              <div className="px-6 py-5 border-b bg-gray-50">
+                <h2 className="text-2xl font-semibold text-gray-900">
+                  Questions légales - Préqualification
+                </h2>
 
-        </div>
+                <div className="mt-3 p-3 bg-amber-100 border border-amber-300 rounded-lg">
+                  <p className="text-base font-semibold text-amber-900">
+                    ⚠️ Obligatoire à chaque début d’appel pour une nouvelle affaire
+                  </p>
+                </div>
+              </div>
 
-      </div>
+              <div className="p-4 space-y-4">
+                <div>
+                  <label className="block text-base font-medium mb-1">
+                    Pointage de crédit et FCSA : Afin de vous offrir la meilleure prime,
+                    j’aurais besoin de votre autorisation pour consulter votre dossier de
+                    crédit et votre dossier au FCSA. Le consentement demeure valide tant que
+                    vous faites affaire avec nous, est-ce que j’ai votre autorisation ?
+                  </label>
+
+                  <p className="text-xs text-gray-500 mb-2">
+                    (C’est seulement une lecture du dossier de crédit du client, aucun impact
+                    sur la cote)
+                  </p>
+                  <input
+                    type="text"
+                    className="w-full p-2 border rounded-lg"
+                    value={autorisationCredit}
+                    onChange={(e) => setAutorisationCredit(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-base font-medium mb-1">
+                    Est-ce que vous ou toute personne habitant sous votre toit avez des
+                    antécédents judiciaires, un dossier criminel ou êtes en attente d’un
+                    procès ?
+                  </label>
+
+                  <select
+                    className="w-full p-2 border rounded-lg"
+                    value={antecedentsJudiciaires}
+                    onChange={(e) => setAntecedentsJudiciaires(e.target.value)}
+                  >
+                    <option value="">Choisir</option>
+                    <option value="Non">Non</option>
+                    <option value="Oui">Oui</option>
+                  </select>
+
+                  {antecedentsJudiciaires === "Oui" && (
+                    <textarea
+                      rows="3"
+                      className="w-full p-2 border rounded-lg mt-2"
+                      placeholder="Précisions"
+                      value={detailsAntecedents}
+                      onChange={(e) => setDetailsAntecedents(e.target.value)}
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-base font-medium mb-1">
+                    Est-ce que vous ou toute personne habitant sous votre toit avez-vous déjà
+                    déclaré faillite ou eu une proposition au consommateur ?
+                  </label>
+
+                  <p className="text-xs text-gray-500 mb-2">
+                    Si oui, date de libération (année et mois) et si moins de 3 ans = non standard
+                  </p>
+
+                  <select
+                    className="w-full p-2 border rounded-lg"
+                    value={faillite}
+                    onChange={(e) => setFaillite(e.target.value)}
+                  >
+                    <option value="">Choisir</option>
+                    <option value="Non">Non</option>
+                    <option value="Oui">Oui</option>
+                  </select>
+
+                  {faillite === "Oui" && (
+                    <textarea
+                      rows="3"
+                      className="w-full p-2 border rounded-lg mt-2"
+                      placeholder="Précisions"
+                      value={detailsFaillite}
+                      onChange={(e) => setDetailsFaillite(e.target.value)}
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-base font-medium mb-1">
+                    Avez-vous déjà été refusé ou annulé par un assureur, notamment pour non-paiement de prime, aggravation ou fausse déclaration ?
+                  </label>
+
+                  <p className="text-xs text-gray-500 mb-2">
+                    Moins de 3 ans = non standard. Si annulé par un de nos assureurs : vérifier le solde antérieur.
+                  </p>
+
+                  <select
+                    className="w-full p-2 border rounded-lg"
+                    value={refusAssureur}
+                    onChange={(e) => setRefusAssureur(e.target.value)}
+                  >
+                    <option value="">Choisir</option>
+                    <option value="Non">Non</option>
+                    <option value="Oui">Oui</option>
+                  </select>
+
+                  {refusAssureur === "Oui" && (
+                    <textarea
+                      rows="3"
+                      className="w-full p-2 border rounded-lg mt-2"
+                      placeholder="Précisions"
+                      value={detailsRefusAssureur}
+                      onChange={(e) => setDetailsRefusAssureur(e.target.value)}
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-base font-medium mb-1">
+                    Avez-vous déjà été reconnu coupable de fraude ou fausse déclaration à l’assurance ?
+                  </label>
+
+                  <select
+                    className="w-full p-2 border rounded-lg"
+                    value={fraudeAssurance}
+                    onChange={(e) => setFraudeAssurance(e.target.value)}
+                  >
+                    <option value="">Choisir</option>
+                    <option value="Non">Non</option>
+                    <option value="Oui">Oui</option>
+                  </select>
+
+                  {fraudeAssurance === "Oui" && (
+                    <textarea
+                      rows="3"
+                      className="w-full p-2 border rounded-lg mt-2"
+                      placeholder="Précisions"
+                      value={detailsFraude}
+                      onChange={(e) => setDetailsFraude(e.target.value)}
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-base font-medium mb-1">
+                    Avez-vous effectué des réclamations dès les 6 dernières années auprès d’un assureur ou êtes-vous au courant d’un évènement pouvant donner lieu à une réclamation ?
+                  </label>
+
+                  <select
+                    className="w-full p-2 border rounded-lg"
+                    value={reclamations}
+                    onChange={(e) => setReclamations(e.target.value)}
+                  >
+                    <option value="">Choisir</option>
+                    <option value="Non">Non</option>
+                    <option value="Oui">Oui</option>
+                  </select>
+
+                  {reclamations === "Oui" && (
+                    <>
+                      <div className="mt-3">
+                        <label className="block text-base font-medium mb-1">
+                          Détails des réclamations
+                        </label>
+
+                        <textarea
+                          rows="4"
+                          className="w-full p-2 border rounded-lg"
+                          placeholder="Précisions"
+                          value={detailsReclamations}
+                          onChange={(e) => setDetailsReclamations(e.target.value)}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {reclamations === "Oui" && (
+                  <div>
+                    <label className="block text-base font-medium mb-1">
+                      Si oui, est-ce que les réclamations sont présentement fermées ?
+                    </label>
+
+                    <select
+                      className="w-full p-2 border rounded-lg"
+                      value={reclamationsFermees}
+                      onChange={(e) => setReclamationsFermees(e.target.value)}
+                    >
+                      <option value="">Choisir</option>
+                      <option value="Oui">Oui</option>
+                      <option value="Non">Non</option>
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-base font-medium mb-1">
+                    Notes
+                  </label>
+
+                  <textarea
+                    rows="4"
+                    className="w-full p-2 border rounded-lg"
+                    placeholder="Ajouter des notes au besoin..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                  />
+                </div>
+
+              </div>
+
+              <div className="border-t px-6 py-4 flex gap-3 bg-gray-50">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      generatePrequalificationScript()
+                    );
+
+                    resetPrequalificationForm();
+                    setIsPrequalificationModalOpen(false);
+                  }}
+                  className="flex-1 bg-emerald-600 text-white py-3 rounded-xl"
+                >
+                  Copier le texte
+                </button>
+
+                <button
+                  onClick={() => {
+                    resetPrequalificationForm();
+                    setIsPrequalificationModalOpen(false);
+                  }}
+                  className="flex-1 bg-gray-200 py-3 rounded-xl"
+                >
+                  Fermer
+                </button>
+              </div>
+
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal Questionnaire Légales */}
+      <LegalQuestionnaireModal />
     </motion.div>
-  )}
-</AnimatePresence>
-
-{/* Modal Questionnaire Légales */}
-<LegalQuestionnaireModal />
-</motion.div>
-);
+  );
 }
 
 export default Canevas;
