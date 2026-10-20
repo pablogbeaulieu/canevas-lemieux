@@ -442,7 +442,6 @@ export default function OutilsPage() {
                   src={`https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_API_KEY}&origin=${encodeURIComponent(closestBranch.originAddress)}&destination=${encodeURIComponent(closestBranch.address)}`}
                 ></iframe>
               </div>
-              </div>
             </motion.div>
           )}
         </AnimatePresence>
