@@ -430,7 +430,7 @@ export default function OutilsPage() {
                 </div>
               </div>
 
-{/* Carte Google Maps Intégrée */}
+              {/* Carte Google Maps Intégrée */}
               <div className="w-full h-80 sm:h-96 rounded-xl overflow-hidden border border-gray-300 shadow-sm relative">
                 <iframe
                   title="Itinéraire vers la succursale"
