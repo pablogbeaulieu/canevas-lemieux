@@ -181,7 +181,7 @@ export default function OutilsPage() {
         return;
       }
 
-try {
+      try {
         const url = `https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${vin}?format=json`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("Network error");
@@ -311,7 +311,6 @@ try {
   // ✅ Tool 5 — Aide-mémoire Honoraires
   // =========================
   const _openAideMemoire = () => {
-    // Remplacé par le nom du fichier Excel
     const filePath = "/documents/Aide_Memoire_Honoraires.xlsx"; 
     const link = document.createElement("a");
     link.href = filePath;
@@ -322,9 +321,22 @@ try {
   };
 
   // =========================
+  // ✅ Tool 6 — Liste des créanciers et locateurs
+  // =========================
+  const _openListeCreanciers = () => {
+    const filePath = "/documents/Liste_des_creanciers_et_locateurs.docx"; 
+    const link = document.createElement("a");
+    link.href = filePath;
+    link.download = "Liste_des_creanciers_et_locateurs.docx";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // =========================
   // UI Meta
   // =========================
-  const toolCount = 5;
+  const toolCount = 6;
 
   const helpText =
     "Entre les 3 premiers caractères du code postal (ex: G1P). La recherche démarre automatiquement.";
@@ -636,7 +648,7 @@ try {
         </button>
       </div>
 
-      {/* ====================== NOUVEAU : Tool 5 — Aide-mémoire Honoraires ====================== */}
+      {/* Tool 5 — Aide-mémoire Honoraires */}
       <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -655,6 +667,28 @@ try {
           className="mt-5 w-full sm:w-auto px-6 py-3 bg-white border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 font-medium rounded-xl transition flex items-center justify-center gap-2 text-base"
         >
           Télécharger l'aide-mémoire (Excel)
+        </button>
+      </div>
+
+      {/* ====================== NOUVEAU : Tool 6 — Liste des créanciers et locateurs ====================== */}
+      <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold">Liste des créanciers et locateurs</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Télécharge la liste des créanciers hypothécaires et locateurs automobiles reconnus ou prohibés.
+            </p>
+          </div>
+          <span className="hidden sm:inline-flex text-xs font-medium bg-white border px-3 py-1 rounded-full text-gray-700">
+            Document
+          </span>
+        </div>
+
+        <button
+          onClick={_openListeCreanciers}
+          className="mt-5 w-full sm:w-auto px-6 py-3 bg-white border border-gray-300 hover:border-gray-400 hover:bg-gray-50 text-gray-700 font-medium rounded-xl transition flex items-center justify-center gap-2 text-base"
+        >
+          Télécharger Liste des créanciers et locateurs (Word)
         </button>
       </div>
 
