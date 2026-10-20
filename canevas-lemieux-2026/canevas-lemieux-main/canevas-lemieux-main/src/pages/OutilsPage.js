@@ -1,119 +1,116 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { supabase } from "../api";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 export default function OutilsPage() {
   // =========================
-  // ✅ Tool 1 — FSA -> Succursale (Supabase)
+  // ✅ Tool 1 — Trouver la succursale la plus proche (Google Maps)
   // =========================
-  const [postalInput, setPostalInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [error, setError] = useState("");
+  const GOOGLE_API_KEY = "AIzaSyA_eKabT6Q3OlOq2vmnhS4Lphm7uYT4zRg";
+  
+  const branches = useMemo(() => [
+    { name: "Lévis", address: "1610, boul. Alphonse-Desjardins, Bureau 300, Lévis, QC G6V 0H1" },
+    { name: "Saint-Henri-de-Lévis", address: "186, route Commerciale, Saint-Henri, QC G0R 3E0" },
+    { name: "Montmagny", address: "118, avenue de la Gare, Bureau 104, Montmagny, QC G5V 2T3" },
+    { name: "Beauceville", address: "254B, avenue Lambert, Beauceville, QC G5X 1S1" },
+    { name: "Québec", address: "4815, boul. de l’Ormière, Bureau 200, Québec, QC G1P 1K6" },
+    { name: "Pont-Rouge", address: "220, rue du Collège, Bureau 202, Pont-Rouge, QC G3H 0C6" },
+    { name: "Trois-Rivières", address: "525, rue Barkoff, Bureau 203, Trois-Rivières, QC G8T 2A5" },
+    { name: "Bécancour", address: "800, boul. du Port-Royal, Bureau 202, Bécancour, QC G9H 0M5" },
+    { name: "Drummondville", address: "100, rue Perron, Suite 201, Drummondville, QC J2C 0T9" },
+    { name: "Boucherville", address: "1205, rue Ampère, Bureau 100, Boucherville, QC J4B 7M6" },
+    { name: "Saint-Jérôme / Mirabel", address: "13735, rue de la Chapelle, Bureau 101, Mirabel, QC J7J 2C9" },
+    { name: "Yamachiche", address: "673 Rue Sainte-Anne, Yamachiche, QC G0X 3L0" }
+  ], []);
 
-  const debounceRef = useRef(null);
-  const lastQueryRef = useRef("");
+  const [addressInput, setAddressInput] = useState("");
+  const [branchLoading, setBranchLoading] = useState(false);
+  const [closestBranch, setClosestBranch] = useState(null);
+  const [branchError, setBranchError] = useState("");
 
-  const normalizeFSA = useCallback((value) => {
-    const v = (value || "").toUpperCase().trim().replace(/\s+/g, "");
-    return v.slice(0, 3);
-  }, []);
-
-  const buildMapsUrl = useCallback((origin, destination) => {
-    return `https://can01.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.google.com%2Fmaps%2Fdir%2F%3Fapi%3D1%26origin%3D%24&data=05%7C02%7Cpablo.beaulieu%40lemieuxassurances.com%7Ca582c2c50a244aeed14308de9fb791e2%7C5040b6819ccd49519a6c9d4351d06190%7C0%7C0%7C639123808398190346%7CUnknown%7CTWFpbGZsb3d8eyJFbXB0eU1hcGkiOnRydWUsIlYiOiIwLjAuMDAwMCIsIlAiOiJXaW4zMiIsIkFOIjoiTWFpbCIsIldUIjoyfQ%3D%3D%7C0%7C%7C%7C&sdata=lbcNpZ5%2FG6tNJAcq8zHFXR64joXiCcnKOQPAC6Ib2mM%3D&reserved=0{encodeURIComponent(
-      origin || ""
-    )}&destination=${encodeURIComponent(destination || "")}`;
-  }, []);
-
-  const originForMaps = useCallback(() => {
-    const raw = (postalInput || "").trim().toUpperCase();
-    return raw.replace(/\s+/g, "").length >= 6 ? raw : normalizeFSA(raw);
-  }, [postalInput, normalizeFSA]);
-
-  const searchFSA = useCallback(
-    async (forcedFsa) => {
-      const fsa = forcedFsa || normalizeFSA(postalInput);
-
-      setLoading(true);
-      setError("");
-      setResult(null);
-
-      try {
-        const { data, error } = await supabase
-          .from("fsa_map")
-          .select("fsa, succursale, postal_succursale")
-          .eq("fsa", fsa)
-          .maybeSingle();
-
-        if (error) throw error;
-
-        if (!data) {
-          setError(`Aucun résultat pour ${fsa}. (À valider)`);
-          return;
-        }
-
-        setResult(data);
-      } catch (e) {
-        console.error(e);
-        setError("Erreur lors de la recherche. Vérifie la table fsa_map + RLS.");
-      } finally {
-        setLoading(false);
+  const loadGoogleMapsAPI = useCallback(() => {
+    return new Promise((resolve, reject) => {
+      if (window.google && window.google.maps) {
+        resolve();
+        return;
       }
-    },
-    [postalInput, normalizeFSA]
-  );
+      const existingScript = document.getElementById('google-maps-script');
+      if (existingScript) {
+        existingScript.addEventListener('load', resolve);
+        existingScript.addEventListener('error', reject);
+        return;
+      }
+      const script = document.createElement('script');
+      script.id = 'google-maps-script';
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}`;
+      script.async = true;
+      script.defer = true;
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }, [GOOGLE_API_KEY]);
 
-  // ✅ Auto-recherche avec debounce
-  useEffect(() => {
-    const fsa = normalizeFSA(postalInput);
-
-    if (!postalInput.trim()) {
-      setError("");
-      setResult(null);
-      setLoading(false);
-      lastQueryRef.current = "";
-      if (debounceRef.current) clearTimeout(debounceRef.current);
+  const searchClosestBranch = useCallback(async () => {
+    if (!addressInput.trim()) {
+      setBranchError("Veuillez entrer une adresse complète ou un code postal.");
       return;
     }
+    setBranchLoading(true);
+    setBranchError("");
+    setClosestBranch(null);
 
-    if (fsa.length < 3) {
-      setError("");
-      setResult(null);
-      setLoading(false);
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      return;
+    try {
+      await loadGoogleMapsAPI();
+      const service = new window.google.maps.DistanceMatrixService();
+      
+      const destinations = branches.map(b => b.address);
+      
+      service.getDistanceMatrix(
+        {
+          origins: [addressInput],
+          destinations: destinations,
+          travelMode: 'DRIVING',
+          unitSystem: window.google.maps.UnitSystem.METRIC,
+        },
+        (response, status) => {
+          if (status !== 'OK') {
+            setBranchError("Impossible de calculer l'itinéraire via Google Maps.");
+            setBranchLoading(false);
+            return;
+          }
+          
+          const results = response.rows[0].elements;
+          let minDuration = Infinity;
+          let bestBranchIndex = -1;
+
+          results.forEach((element, index) => {
+            if (element.status === "OK" && element.duration.value < minDuration) {
+              minDuration = element.duration.value;
+              bestBranchIndex = index;
+            }
+          });
+
+          if (bestBranchIndex === -1) {
+            setBranchError("Aucune route terrestre trouvée pour cette adresse.");
+            setBranchLoading(false);
+            return;
+          }
+
+          setClosestBranch({
+            ...branches[bestBranchIndex],
+            distance: results[bestBranchIndex].distance.text,
+            duration: results[bestBranchIndex].duration.text,
+            originAddress: response.originAddresses[0]
+          });
+          setBranchLoading(false);
+        }
+      );
+    } catch (err) {
+      console.error(err);
+      setBranchError("Erreur lors de la communication avec Google Maps.");
+      setBranchLoading(false);
     }
-
-    if (!/^[A-Z0-9]{3}$/.test(fsa)) {
-      setError("Entre un code postal valide (au moins 3 caractères). Ex: G1P");
-      setResult(null);
-      setLoading(false);
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      return;
-    }
-
-    if (lastQueryRef.current === fsa) return;
-
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      lastQueryRef.current = fsa;
-      searchFSA(fsa);
-    }, 350);
-
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [postalInput, normalizeFSA, searchFSA]);
-
-  const onManualSearch = useCallback(() => {
-    const fsa = normalizeFSA(postalInput);
-    if (!/^[A-Z0-9]{3}$/.test(fsa)) {
-      setError("Entre un code postal valide (au moins 3 caractères). Ex: G1P");
-      return;
-    }
-    lastQueryRef.current = fsa;
-    searchFSA(fsa);
-  }, [postalInput, normalizeFSA, searchFSA]);
+  }, [addressInput, branches, loadGoogleMapsAPI]);
 
   // =========================
   // ✅ Tool 2 — Décoder NIV (VIN)
@@ -128,7 +125,6 @@ export default function OutilsPage() {
   const lastVinDecodedRef = useRef("");
 
   const normalizeVin = useCallback((value) => (value || "").toUpperCase().trim(), []);
-
   const safe = useCallback((v) => (v == null ? "" : String(v)).trim(), []);
 
   const isValidVin = useCallback(
@@ -338,9 +334,6 @@ export default function OutilsPage() {
   // =========================
   const toolCount = 6;
 
-  const helpText =
-    "Entre les 3 premiers caractères du code postal (ex: G1P). La recherche démarre automatiquement.";
-
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.985 }}
@@ -366,91 +359,88 @@ export default function OutilsPage() {
         </div>
       </div>
 
-      {/* Tool 1 — Succursale */}
+      {/* Tool 1 — Succursale (Google Maps) */}
       <div className="border rounded-xl p-5 bg-gray-50 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold">
               Trouver la succursale la plus proche
             </h2>
-            <p className="text-sm text-gray-600 mt-1">{helpText}</p>
+            <p className="text-sm text-gray-600 mt-1">
+              Entre l'adresse complète ou le code postal du client pour trouver le bureau le plus près en temps de route réel.
+            </p>
           </div>
-          <span className="hidden sm:inline-flex text-xs font-medium bg-white border px-3 py-1 rounded-full text-gray-700">
-            À jour
+          <span className="hidden sm:inline-flex text-xs font-medium bg-blue-100 border border-blue-200 px-3 py-1 rounded-full text-blue-800">
+            Google Maps
           </span>
         </div>
 
         <div className="mt-4 flex flex-col sm:flex-row gap-3">
           <input
-            value={postalInput}
-            onChange={(e) => setPostalInput(e.target.value)}
-            placeholder="Ex: G1P ou G1P 1K6"
+            value={addressInput}
+            onChange={(e) => setAddressInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && searchClosestBranch()}
+            placeholder="Ex: 123 rue Principale, Québec ou G1P 1K6"
             className="flex-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-300"
           />
           <button
-            onClick={onManualSearch}
-            disabled={loading}
-            className="bg-blue-700 hover:bg-blue-800 disabled:bg-blue-400 text-white px-5 py-3 rounded-lg transition font-semibold"
+            onClick={searchClosestBranch}
+            disabled={branchLoading}
+            className="bg-blue-700 hover:bg-blue-800 disabled:bg-blue-400 text-white px-5 py-3 rounded-lg transition font-semibold min-w-[140px]"
           >
-            {loading ? "Recherche..." : "Rechercher"}
+            {branchLoading ? "Recherche..." : "Rechercher"}
           </button>
         </div>
 
         <AnimatePresence>
-          {loading && (
-            <motion.div
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              className="mt-3 text-sm text-gray-600"
-            >
-              ⏳ Recherche en cours…
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {!!error && !loading && (
+          {branchError && !branchLoading && (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 8 }}
-              className="mt-4 text-red-600 text-sm"
+              className="mt-4 text-red-600 text-sm font-medium"
             >
-              {error}
+              {branchError}
             </motion.div>
           )}
         </AnimatePresence>
 
         <AnimatePresence>
-          {result && !loading && (
+          {closestBranch && !branchLoading && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="mt-4 p-4 bg-white border rounded-xl"
+              className="mt-5"
             >
-              <div className="text-sm text-gray-500 mb-2">
-                FSA: <b>{result.fsa}</b>
-              </div>
-              <div className="text-lg font-semibold">
-                Succursale: {result.succursale}
-              </div>
-              {result.postal_succursale && (
-                <div className="text-sm text-gray-700 mt-1">
-                  Code postal succursale: <b>{result.postal_succursale}</b>
+              <div className="p-4 bg-white border border-emerald-200 rounded-xl mb-4 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                <div className="text-xs text-gray-500 mb-1 uppercase tracking-wide font-semibold">
+                  Résultat
                 </div>
-              )}
-              {result.postal_succursale && (
-                <a
-                  className="inline-flex items-center gap-2 mt-3 text-sm bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg transition font-semibold"
-                  href={buildMapsUrl(originForMaps(), result.postal_succursale)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  🗺️ Ouvrir l’itinéraire (Google Maps)
-                </a>
-              )}
+                <div className="text-lg font-bold text-gray-900">
+                  Succursale de {closestBranch.name}
+                </div>
+                <div className="text-sm text-gray-700 mt-1 flex items-center gap-2">
+                  <span>🚗 <b>{closestBranch.duration}</b> de trajet ({closestBranch.distance})</span>
+                </div>
+                <div className="text-sm text-gray-500 mt-2 border-t pt-2">
+                  <span className="font-semibold text-gray-600">Départ :</span> {closestBranch.originAddress} <br/>
+                  <span className="font-semibold text-gray-600">Arrivée :</span> {closestBranch.address}
+                </div>
+              </div>
+
+              {/* Carte Google Maps Intégrée */}
+              <div className="w-full h-80 sm:h-96 rounded-xl overflow-hidden border border-gray-300 shadow-sm relative">
+                <iframe
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  allowFullScreen
+                  src={`https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_API_KEY}&origin=${encodeURIComponent(closestBranch.originAddress)}&destination=${encodeURIComponent(closestBranch.address)}`}
+                ></iframe>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -670,7 +660,7 @@ export default function OutilsPage() {
         </button>
       </div>
 
-      {/* ====================== NOUVEAU : Tool 6 — Liste des créanciers et locateurs ====================== */}
+      {/* Tool 6 — Liste des créanciers et locateurs */}
       <div className="mt-6 border rounded-xl p-5 bg-gray-50 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
