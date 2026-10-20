@@ -430,9 +430,10 @@ export default function OutilsPage() {
                 </div>
               </div>
 
-              {/* Carte Google Maps Intégrée */}
+{/* Carte Google Maps Intégrée */}
               <div className="w-full h-80 sm:h-96 rounded-xl overflow-hidden border border-gray-300 shadow-sm relative">
                 <iframe
+                  title="Itinéraire vers la succursale"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
@@ -440,6 +441,7 @@ export default function OutilsPage() {
                   allowFullScreen
                   src={`https://www.google.com/maps/embed/v1/directions?key=${GOOGLE_API_KEY}&origin=${encodeURIComponent(closestBranch.originAddress)}&destination=${encodeURIComponent(closestBranch.address)}`}
                 ></iframe>
+              </div>
               </div>
             </motion.div>
           )}
